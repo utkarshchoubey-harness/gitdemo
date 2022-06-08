@@ -1,0 +1,21 @@
+template:
+    name: New Step Templadssdte Name
+    identifier: New_Step_Templadssdte_Name
+    versionLabel: ds
+    type: Step
+    projectIdentifier: kg
+    orgIdentifier: default
+    tags: {}
+    spec:
+        type: ShellScript
+        timeout: 10m
+        spec:
+            shell: Bash
+            onDelegate: true
+            source:
+                type: Inline
+                spec:
+                    script: ls
+            environmentVariables: []
+            outputVariables: []
+            executionTarget: {}

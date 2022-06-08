@@ -1,0 +1,15 @@
+template:
+    name: aaq
+    identifier: aaq
+    versionLabel: aaq
+    type: Step
+    projectIdentifier: kg
+    orgIdentifier: default
+    tags: {}
+    spec:
+        type: TerraformDestroy
+        timeout: 10m
+        spec:
+            provisionerIdentifier: <+input>
+            configuration:
+                type: InheritFromApply

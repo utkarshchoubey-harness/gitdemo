@@ -1,0 +1,23 @@
+connector:
+    name: utkarshgit
+    identifier: utk_git
+    description: ""
+    orgIdentifier: default
+    projectIdentifier: kg
+    type: Github
+    spec:
+        url: https://github.com/utkarshchoubey-harness/gitdemo
+        validationRepo: gitdemo
+        authentication:
+            type: Http
+            spec:
+                type: UsernameToken
+                spec:
+                    username: utkarshchoubey-harness
+                    tokenRef: utkarshnew
+        apiAccess:
+            type: Token
+            spec:
+                tokenRef: utkarshnew
+        executeOnDelegate: true
+        type: Repo

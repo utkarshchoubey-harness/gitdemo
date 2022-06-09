@@ -1,0 +1,15 @@
+template:
+    name: aa2
+    identifier: aa2
+    versionLabel: a
+    type: Step
+    projectIdentifier: kg
+    orgIdentifier: default
+    tags: {}
+    spec:
+        type: TerraformDestroy
+        timeout: 10m
+        spec:
+            provisionerIdentifier: <+input>
+            configuration:
+                type: InheritFromApply

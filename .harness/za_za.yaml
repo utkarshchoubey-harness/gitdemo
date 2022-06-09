@@ -1,0 +1,15 @@
+template:
+    name: za
+    identifier: za
+    versionLabel: za
+    type: Step
+    projectIdentifier: kg
+    orgIdentifier: default
+    tags: {}
+    spec:
+        type: TerraformDestroy
+        timeout: 10m
+        spec:
+            provisionerIdentifier: <+input>
+            configuration:
+                type: InheritFromApply

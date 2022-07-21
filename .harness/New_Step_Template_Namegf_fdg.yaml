@@ -1,0 +1,17 @@
+template:
+    name: New Step Template Namegf
+    identifier: New_Step_Template_Namegf
+    versionLabel: fdg
+    type: Step
+    projectIdentifier: gitsync
+    orgIdentifier: default
+    tags: {}
+    spec:
+        type: Http
+        timeout: 10s
+        spec:
+            url: <+input>
+            method: GET
+            headers: []
+            outputVariables: []
+            requestBody: <+input>

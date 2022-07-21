@@ -1,0 +1,21 @@
+template:
+    name: step1
+    identifier: step1
+    versionLabel: "1"
+    type: Step
+    projectIdentifier: weq
+    orgIdentifier: default
+    tags: {}
+    spec:
+        type: ShellScript
+        timeout: 10m
+        spec:
+            shell: Bash
+            onDelegate: true
+            source:
+                type: Inline
+                spec:
+                    script: jdid
+            environmentVariables: []
+            outputVariables: []
+            executionTarget: {}

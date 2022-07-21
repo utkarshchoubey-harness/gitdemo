@@ -1,0 +1,23 @@
+connector:
+  name: utkarsh
+  identifier: utkarsh
+  description: ""
+  orgIdentifier: default
+  projectIdentifier: weq
+  type: Github
+  spec:
+    url: https://github.com/utkarshchoubey-harness
+    validationRepo: gitdemo
+    authentication:
+      type: Http
+      spec:
+        type: UsernameToken
+        spec:
+          username: utkarshchoubey-harness
+          tokenRef: dw
+    apiAccess:
+      type: Token
+      spec:
+        tokenRef: dw
+    executeOnDelegate: false
+    type: Account

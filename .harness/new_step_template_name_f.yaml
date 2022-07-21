@@ -1,0 +1,21 @@
+template:
+    name: New Step Template Name
+    identifier: new_step_template_name
+    versionLabel: f
+    type: Step
+    projectIdentifier: manu
+    orgIdentifier: default
+    tags: {}
+    spec:
+        type: ShellScript
+        timeout: 10m
+        spec:
+            shell: Bash
+            onDelegate: true
+            source:
+                type: Inline
+                spec:
+                    script: dfg
+            environmentVariables: []
+            outputVariables: []
+            executionTarget: {}

@@ -1,0 +1,23 @@
+connector:
+  name: sad
+  identifier: sad
+  description: ""
+  orgIdentifier: default
+  projectIdentifier: vb
+  type: Github
+  spec:
+    url: https://github.com/utkarshchoubey-harness
+    validationRepo: gitdemo
+    authentication:
+      type: Http
+      spec:
+        type: UsernameToken
+        spec:
+          username: utkarshchoubey-harness
+          tokenRef: fsd
+    apiAccess:
+      type: Token
+      spec:
+        tokenRef: fsd
+    executeOnDelegate: true
+    type: Account

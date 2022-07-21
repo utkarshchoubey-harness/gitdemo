@@ -1,0 +1,23 @@
+connector:
+  name: utk
+  identifier: utk
+  description: ""
+  orgIdentifier: default
+  projectIdentifier: rte
+  type: Github
+  spec:
+    url: https://github.com/utkarshchoubey-harness
+    validationRepo: gitdemo
+    authentication:
+      type: Http
+      spec:
+        type: UsernameToken
+        spec:
+          username: utkarshchoubey-harness
+          tokenRef: adwas
+    apiAccess:
+      type: Token
+      spec:
+        tokenRef: adwas
+    executeOnDelegate: true
+    type: Account

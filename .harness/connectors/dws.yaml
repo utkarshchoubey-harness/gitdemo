@@ -1,0 +1,23 @@
+connector:
+  name: dws
+  identifier: dws
+  description: ""
+  orgIdentifier: default
+  projectIdentifier: manu
+  type: Github
+  spec:
+    url: https://github.com/utkarshchoubey-harness
+    validationRepo: gitdemo
+    authentication:
+      type: Http
+      spec:
+        type: UsernameToken
+        spec:
+          username: utkarshchoubey-harness
+          tokenRef: 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
+    apiAccess:
+      type: Token
+      spec:
+        tokenRef: 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
+    executeOnDelegate: false
+    type: Account

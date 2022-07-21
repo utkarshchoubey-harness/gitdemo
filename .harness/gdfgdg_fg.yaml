@@ -1,0 +1,27 @@
+template:
+    name: gdfgdg
+    identifier: gdfgdg
+    versionLabel: fg
+    type: Pipeline
+    projectIdentifier: gitsync
+    orgIdentifier: default
+    tags: {}
+    spec:
+        stages:
+            - stage:
+                  name: gfd
+                  identifier: gfd
+                  template:
+                      templateRef: New_Stage_Template_Namegdfgdgdfgdg
+                      versionLabel: gf
+                      templateInputs:
+                          type: Approval
+                          spec:
+                              execution:
+                                  steps:
+                                      - step:
+                                            identifier: gdf
+                                            type: HarnessApproval
+                                            spec:
+                                                approvers:
+                                                    userGroups: <+input>

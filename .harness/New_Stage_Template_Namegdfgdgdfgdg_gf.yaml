@@ -1,0 +1,28 @@
+template:
+    name: New Stage Template Namegdfgdgdfgdg
+    identifier: New_Stage_Template_Namegdfgdgdfgdg
+    versionLabel: gf
+    type: Stage
+    projectIdentifier: gitsync
+    orgIdentifier: default
+    tags: {}
+    spec:
+        type: Approval
+        spec:
+            execution:
+                steps:
+                    - step:
+                          name: gdf
+                          identifier: gdf
+                          type: HarnessApproval
+                          timeout: 1d
+                          spec:
+                              approvalMessage: |-
+                                  Please review the following information
+                                  and approve the pipeline progression
+                              includePipelineExecutionHistory: true
+                              approvers:
+                                  minimumCount: 1
+                                  disallowPipelineExecutor: false
+                                  userGroups: <+input>
+                              approverInputs: []

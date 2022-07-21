@@ -1,0 +1,27 @@
+template:
+    name: wqe
+    identifier: wqe
+    versionLabel: e
+    type: Pipeline
+    projectIdentifier: weq
+    orgIdentifier: default
+    tags: {}
+    spec:
+        stages:
+            - stage:
+                  name: we
+                  identifier: we
+                  template:
+                      templateRef: ewq
+                      versionLabel: we
+                      templateInputs:
+                          type: Approval
+                          spec:
+                              execution:
+                                  steps:
+                                      - step:
+                                            identifier: ds
+                                            type: HarnessApproval
+                                            spec:
+                                                approvers:
+                                                    userGroups: <+input>

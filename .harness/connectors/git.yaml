@@ -1,0 +1,23 @@
+connector:
+  name: git
+  identifier: git
+  description: ""
+  orgIdentifier: default
+  projectIdentifier: gitsync
+  type: Github
+  spec:
+    url: https://github.com/utkarshchoubey-harness
+    validationRepo: gitdemo
+    authentication:
+      type: Http
+      spec:
+        type: UsernameToken
+        spec:
+          username: utkarshchoubey-harness
+          tokenRef: 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
+    apiAccess:
+      type: Token
+      spec:
+        tokenRef: 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
+    executeOnDelegate: false
+    type: Account

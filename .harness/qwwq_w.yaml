@@ -1,0 +1,21 @@
+template:
+    name: qwwq
+    identifier: qwwq
+    versionLabel: w
+    type: Step
+    projectIdentifier: vb
+    orgIdentifier: default
+    tags: {}
+    spec:
+        timeout: 10m
+        type: ShellScript
+        spec:
+            shell: Bash
+            onDelegate: true
+            source:
+                type: Inline
+                spec:
+                    script: sad
+            environmentVariables: []
+            outputVariables: []
+            executionTarget: {}

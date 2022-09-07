@@ -1,0 +1,19 @@
+template:
+  name: stepppp
+  identifier: stepppp
+  versionLabel: "1"
+  type: Step
+  orgIdentifier: default
+  tags: {}
+  spec:
+    timeout: 10m
+    type: ShellScript
+    spec:
+      shell: Bash
+      onDelegate: true
+      source:
+        type: Inline
+        spec:
+          script: cew
+      environmentVariables: []
+      outputVariables: []

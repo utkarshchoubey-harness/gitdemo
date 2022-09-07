@@ -1,0 +1,20 @@
+template:
+  name: stepxe
+  identifier: stepxe
+  versionLabel: e
+  type: Step
+  projectIdentifier: utkarsh
+  orgIdentifier: default
+  tags: {}
+  spec:
+    timeout: 10m
+    type: ShellScript
+    spec:
+      shell: Bash
+      onDelegate: true
+      source:
+        type: Inline
+        spec:
+          script: xe
+      environmentVariables: []
+      outputVariables: []

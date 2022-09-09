@@ -19,5 +19,8 @@ template:
         - name: dfge
           type: String
           value: <+input>
-      outputVariables: []
+      outputVariables:
+        - name: dbh
+          type: String
+          value: <+input>
     timeout: 10m

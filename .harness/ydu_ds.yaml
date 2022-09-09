@@ -26,3 +26,9 @@ template:
                   disallowPipelineExecutor: false
                   userGroups: <+input>
                 approverInputs: []
+          - step:
+              name: df
+              identifier: df
+              template:
+                templateRef: steppp1
+                versionLabel: s

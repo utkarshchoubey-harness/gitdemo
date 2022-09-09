@@ -7,7 +7,6 @@ template:
   orgIdentifier: default
   tags: {}
   spec:
-    timeout: <+input>
     type: ShellScript
     spec:
       shell: Bash
@@ -16,5 +15,9 @@ template:
         type: Inline
         spec:
           script: <+input>
-      environmentVariables: []
+      environmentVariables:
+        - name: dfge
+          type: String
+          value: <+input>
       outputVariables: []
+    timeout: 10m

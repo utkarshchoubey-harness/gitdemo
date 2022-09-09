@@ -28,4 +28,21 @@ pipeline:
                       disallowPipelineExecutor: false
                       userGroups: <+input>
                     approverInputs: []
+              - step:
+                  name: fe
+                  identifier: fe
+                  template:
+                    templateRef: steppp1
+                    versionLabel: s
+                    templateInputs:
+                      type: ShellScript
+                      spec:
+                        source:
+                          type: Inline
+                          spec:
+                            script: <+input>
+                        environmentVariables:
+                          - name: dfge
+                            type: String
+                            value: <+input>
         tags: {}

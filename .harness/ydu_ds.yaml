@@ -12,31 +12,13 @@ template:
       execution:
         steps:
           - step:
-              name: fe
-              identifier: fe
-              type: HarnessApproval
-              timeout: 1d
-              spec:
-                approvalMessage: |-
-                  Please review the following information
-                  and approve the pipeline progression
-                includePipelineExecutionHistory: true
-                approvers:
-                  minimumCount: 1
-                  disallowPipelineExecutor: false
-                  userGroups: <+input>
-                approverInputs: []
-          - step:
-              name: df
-              identifier: df
+              name: fer
+              identifier: fer
               template:
-                templateRef: steppp1
-                versionLabel: s
+                templateRef: diff_br
+                versionLabel: xsa
                 templateInputs:
-                  type: ShellScript
-                  timeout: <+input>
+                  type: HarnessApproval
                   spec:
-                    source:
-                      type: Inline
-                      spec:
-                        script: <+input>
+                    approvers:
+                      userGroups: <+input>

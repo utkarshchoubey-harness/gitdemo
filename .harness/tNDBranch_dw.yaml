@@ -12,8 +12,15 @@ template:
       execution:
         steps:
           - step:
-              name: grgrgr
-              identifier: grgrgr
+              name: cdcd
+              identifier: cdcd
               template:
-                templateRef: diff_br
-                versionLabel: xsa
+                templateRef: fewfrewferf
+                versionLabel: frefef
+                templateInputs:
+                  type: ShellScript
+                  spec:
+                    source:
+                      type: Inline
+                      spec:
+                        script: <+input>

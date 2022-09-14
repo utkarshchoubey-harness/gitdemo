@@ -1,0 +1,24 @@
+pipeline:
+  name: few
+  identifier: few
+  projectIdentifier: defaultproject
+  orgIdentifier: default
+  tags: {}
+  stages:
+    - stage:
+        name: fewf
+        identifier: fewf
+        template:
+          templateRef: fewfwwfw
+          versionLabel: fweffww
+          templateInputs:
+            type: Approval
+            spec:
+              execution:
+                steps:
+                  - step:
+                      identifier: bjhg
+                      template:
+                        templateInputs:
+                          type: ShellScript
+                          timeout: <+input>

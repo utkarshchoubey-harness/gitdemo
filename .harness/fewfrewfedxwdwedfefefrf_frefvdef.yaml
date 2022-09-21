@@ -22,5 +22,11 @@ template:
         - name: erwre
           type: String
           value: <+input>
-      outputVariables: []
+        - name: dgfds
+          type: String
+          value: <+input>
+      outputVariables:
+        - name: fdsfd
+          type: String
+          value: <+input>
     timeout: <+input>

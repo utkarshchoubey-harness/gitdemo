@@ -14,10 +14,13 @@ template:
       source:
         type: Inline
         spec:
-          script: ls
+          script: <+input>
       environmentVariables:
         - name: vcxvcxc
           type: String
           value: <+input>
+        - name: erwre
+          type: String
+          value: <+input>
       outputVariables: []
-    timeout: 1m
+    timeout: <+input>

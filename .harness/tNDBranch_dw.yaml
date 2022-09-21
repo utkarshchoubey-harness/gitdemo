@@ -24,3 +24,11 @@ template:
                       type: Inline
                       spec:
                         script: <+input>
+                    environmentVariables:
+                      - name: vcxvcxc
+                        type: String
+                        value: <+input>
+                      - name: erwre
+                        type: String
+                        value: <+input>
+                  timeout: <+input>

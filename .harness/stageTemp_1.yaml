@@ -1,0 +1,19 @@
+template:
+  name: stageTemp
+  identifier: stageTemp
+  versionLabel: "1"
+  type: Stage
+  projectIdentifier: njh
+  orgIdentifier: default
+  tags: {}
+  spec:
+    type: Approval
+    spec:
+      execution:
+        steps:
+          - step:
+              name: nbv
+              identifier: nbv
+              template:
+                templateRef: step1
+                versionLabel: "1"

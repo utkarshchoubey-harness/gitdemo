@@ -1,0 +1,19 @@
+template:
+  name: gfdgdgdgfdg4rtret
+  identifier: gfdgdgdgfdg4rtret
+  versionLabel: gdfgert3
+  type: Stage
+  projectIdentifier: njh
+  orgIdentifier: default
+  tags: {}
+  spec:
+    type: Approval
+    spec:
+      execution:
+        steps:
+          - step:
+              name: dasd
+              identifier: dasd
+              template:
+                templateRef: step111zcxzczc
+                versionLabel: ewqeq

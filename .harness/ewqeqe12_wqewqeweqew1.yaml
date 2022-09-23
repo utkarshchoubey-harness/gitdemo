@@ -1,0 +1,19 @@
+template:
+  name: ewqeqe12
+  identifier: ewqeqe12
+  versionLabel: wqewqeweqew1
+  type: Stage
+  projectIdentifier: defaultproject
+  orgIdentifier: default
+  tags: {}
+  spec:
+    type: Approval
+    spec:
+      execution:
+        steps:
+          - step:
+              name: eqweq
+              identifier: eqweq
+              template:
+                templateRef: stepppppp
+                versionLabel: "12"

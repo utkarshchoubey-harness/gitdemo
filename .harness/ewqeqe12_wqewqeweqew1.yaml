@@ -1,19 +1,26 @@
 template:
-  name: ewqeqe12
-  identifier: ewqeqe12
-  versionLabel: wqewqeweqew1
-  type: Stage
-  projectIdentifier: defaultproject
-  orgIdentifier: default
+  name: "ewqeqe12"
+  identifier: "ewqeqe12"
+  versionLabel: "wqewqeweqew1"
+  type: "Stage"
+  projectIdentifier: "defaultproject"
+  orgIdentifier: "default"
   tags: {}
   spec:
-    type: Approval
+    type: "Approval"
     spec:
       execution:
         steps:
-          - step:
-              name: eqweq
-              identifier: eqweq
-              template:
-                templateRef: stepppppp
-                versionLabel: "12"
+        - step:
+            name: "eqweq"
+            identifier: "eqweq"
+            template:
+              templateRef: "stepppppp"
+              versionLabel: "12"
+              templateInputs:
+                type: "ShellScript"
+                spec:
+                  source:
+                    type: "Inline"
+                    spec:
+                      script: "<+input>"

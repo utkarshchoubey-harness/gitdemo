@@ -15,6 +15,6 @@ template:
       source:
         type: Inline
         spec:
-          script: tret
+          script: <+input>
       environmentVariables: []
       outputVariables: []

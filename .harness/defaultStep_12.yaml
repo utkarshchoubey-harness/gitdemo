@@ -1,0 +1,20 @@
+template:
+  name: defaultStep
+  identifier: defaultStep
+  versionLabel: "12"
+  type: Step
+  projectIdentifier: njh
+  orgIdentifier: default
+  tags: {}
+  spec:
+    timeout: 10m
+    type: ShellScript
+    spec:
+      shell: Bash
+      onDelegate: true
+      source:
+        type: Inline
+        spec:
+          script: eqwe
+      environmentVariables: []
+      outputVariables: []

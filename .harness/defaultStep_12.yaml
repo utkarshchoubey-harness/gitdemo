@@ -15,6 +15,9 @@ template:
       source:
         type: Inline
         spec:
-          script: eqwe
-      environmentVariables: []
+          script: <+input>
+      environmentVariables:
+        - name: yrtyry
+          type: String
+          value: <+input>
       outputVariables: []

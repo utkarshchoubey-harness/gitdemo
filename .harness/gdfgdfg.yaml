@@ -1,0 +1,9 @@
+pipeline:
+  name: gdfgdfg
+  identifier: gdfgdfg
+  template:
+    templateRef: inlinePipeline
+    versionLabel: dew
+  tags: {}
+  projectIdentifier: njh
+  orgIdentifier: default

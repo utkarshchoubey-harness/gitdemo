@@ -30,3 +30,11 @@ template:
             template:
               templateRef: "fdgdgfggd"
               versionLabel: "gdfgfdg"
+              templateInputs:
+                type: "ShellScript"
+                spec:
+                  source:
+                    type: "Inline"
+                    spec:
+                      script: "<+input>"
+                timeout: "<+input>"

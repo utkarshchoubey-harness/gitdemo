@@ -32,8 +32,13 @@ template:
               versionLabel: "gdfgfdg"
               templateInputs:
                 type: "ShellScript"
+                timeout: "<+input>"
                 spec:
                   source:
                     type: "Inline"
                     spec:
                       script: "<+input>"
+                  environmentVariables:
+                  - name: "rewr"
+                    type: "String"
+                    value: "<+input>"

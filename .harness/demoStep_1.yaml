@@ -15,7 +15,7 @@ template:
       source:
         type: Inline
         spec:
-          script: erwr
+          script: <+input>
       environmentVariables:
         - name: rw3rwe
           type: String

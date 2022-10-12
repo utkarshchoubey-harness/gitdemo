@@ -19,5 +19,5 @@ template:
       environmentVariables:
         - name: rw3rwe
           type: String
-          value: rwerw
+          value: <+input>
       outputVariables: []

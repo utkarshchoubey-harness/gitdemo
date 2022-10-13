@@ -7,7 +7,6 @@ template:
   orgIdentifier: default
   tags: {}
   spec:
-    timeout: <+input>
     type: ShellScript
     spec:
       shell: Bash
@@ -23,4 +22,8 @@ template:
         - name: r34
           type: String
           value: <+input>
+        - name: yrtyr
+          type: String
+          value: <+input>
       outputVariables: []
+    timeout: <+input>

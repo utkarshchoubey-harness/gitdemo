@@ -20,4 +20,7 @@ template:
         - name: rw3rwe
           type: String
           value: <+input>
+        - name: r34
+          type: String
+          value: <+input>
       outputVariables: []

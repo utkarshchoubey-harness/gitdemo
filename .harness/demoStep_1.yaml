@@ -28,5 +28,8 @@ template:
         - name: tre
           type: String
           value: <+input>
+        - name: gr
+          type: String
+          value: <+input>
       outputVariables: []
     timeout: <+input>

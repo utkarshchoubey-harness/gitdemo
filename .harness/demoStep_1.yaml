@@ -18,12 +18,12 @@ template:
       environmentVariables:
         - name: rw3rwe
           type: String
-          value: uytut
+          value: <+input>
         - name: r34
           type: String
-          value: uytu
+          value: <+input>
         - name: yrtyr
           type: String
-          value: uyt
+          value: <+input>
       outputVariables: []
     timeout: <+input>

@@ -15,6 +15,6 @@ template:
       source:
         type: Inline
         spec:
-          script: th
+          script: <+input>
       environmentVariables: []
       outputVariables: []

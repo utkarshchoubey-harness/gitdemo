@@ -14,16 +14,16 @@ template:
       source:
         type: Inline
         spec:
-          script: fsdf
+          script: <+input>
       environmentVariables:
         - name: rw3rwe
           type: String
-          value: <+input>
+          value: uytut
         - name: r34
           type: String
-          value: <+input>
+          value: uytu
         - name: yrtyr
           type: String
-          value: <+input>
+          value: uyt
       outputVariables: []
-    timeout: 1m
+    timeout: <+input>

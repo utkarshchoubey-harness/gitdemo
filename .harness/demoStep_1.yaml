@@ -25,5 +25,8 @@ template:
         - name: yrtyr
           type: String
           value: <+input>
+        - name: tre
+          type: String
+          value: <+input>
       outputVariables: []
     timeout: <+input>

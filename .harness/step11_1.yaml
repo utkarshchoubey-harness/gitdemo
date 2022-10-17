@@ -16,8 +16,5 @@ template:
         type: Inline
         spec:
           script: <+input>
-      environmentVariables:
-        - name: jghj
-          type: String
-          value: <+input>
+      environmentVariables: []
       outputVariables: []

@@ -14,7 +14,7 @@ template:
       source:
         type: Inline
         spec:
-          script: <+input>
+          script: fsdf
       environmentVariables:
         - name: rw3rwe
           type: String
@@ -26,4 +26,4 @@ template:
           type: String
           value: <+input>
       outputVariables: []
-    timeout: <+input>
+    timeout: 1m

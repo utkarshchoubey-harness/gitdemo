@@ -43,5 +43,8 @@ template:
         - name: tyu
           type: String
           value: <+input>
+        - name: fdsfewrfwrwer
+          type: String
+          value: <+input>
       outputVariables: []
     timeout: <+input>

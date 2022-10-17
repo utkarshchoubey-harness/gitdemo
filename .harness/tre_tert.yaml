@@ -1,51 +1,60 @@
 template:
-  name: tre
-  identifier: tre
-  versionLabel: tert
-  type: Pipeline
-  projectIdentifier: njh
-  orgIdentifier: default
+  name: "tre"
+  identifier: "tre"
+  versionLabel: "tert"
+  type: "Pipeline"
+  projectIdentifier: "njh"
+  orgIdentifier: "default"
   tags: {}
   spec:
     stages:
-      - stage:
-          name: khjk
-          identifier: khjk
-          template:
-            templateRef: demoStage
-            versionLabel: "1"
-            templateInputs:
-              type: Approval
-              spec:
-                execution:
-                  steps:
-                    - step:
-                        identifier: rew
-                        template:
-                          templateInputs:
-                            type: ShellScript
+    - stage:
+        name: "khjk"
+        identifier: "khjk"
+        template:
+          templateRef: "demoStage"
+          versionLabel: "1"
+          templateInputs:
+            type: "Approval"
+            spec:
+              execution:
+                steps:
+                - step:
+                    identifier: "rew"
+                    template:
+                      templateInputs:
+                        type: "ShellScript"
+                        spec:
+                          source:
+                            type: "Inline"
                             spec:
-                              source:
-                                type: Inline
-                                spec:
-                                  script: <+input>
-                              environmentVariables:
-                                - name: rw3rwe
-                                  type: String
-                                  value: <+input>
-                                - name: r34
-                                  type: String
-                                  value: <+input>
-                                - name: yrtyr
-                                  type: String
-                                  value: <+input>
-                                - name: tre
-                                  type: String
-                                  value: <+input>
-                                - name: gr
-                                  type: String
-                                  value: <+input>
-                                - name: rew
-                                  type: String
-                                  value: <+input>
-                            timeout: <+input>
+                              script: "<+input>"
+                          environmentVariables:
+                          - name: "rw3rwe"
+                            type: "String"
+                            value: "<+input>"
+                          - name: "r34"
+                            type: "String"
+                            value: "<+input>"
+                          - name: "yrtyr"
+                            type: "String"
+                            value: "<+input>"
+                          - name: "tre"
+                            type: "String"
+                            value: "<+input>"
+                          - name: "gr"
+                            type: "String"
+                            value: "<+input>"
+                          - name: "rew"
+                            type: "String"
+                            value: "<+input>"
+                          - name: "hy"
+                            type: "String"
+                            value: "<+input>"
+                          - name: "gf"
+                            type: "String"
+                            value: "<+input>"
+                          - name: "tyu"
+                            type: "String"
+                            value: "<+input>"
+                        timeout: "<+input>"

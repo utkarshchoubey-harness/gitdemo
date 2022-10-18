@@ -1,0 +1,26 @@
+pipeline:
+  name: pipe1
+  identifier: pipe1
+  projectIdentifier: njh
+  orgIdentifier: default
+  tags: {}
+  stages:
+    - stage:
+        name: ewq
+        identifier: ewq
+        template:
+          templateRef: gitSync
+          versionLabel: "1"
+          templateInputs:
+            type: Approval
+            spec:
+              execution:
+                steps:
+                  - step:
+                      identifier: dsa
+                      type: ShellScript
+                      spec:
+                        source:
+                          type: Inline
+                          spec:
+                            script: <+input>

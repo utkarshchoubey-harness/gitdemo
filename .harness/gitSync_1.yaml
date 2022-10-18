@@ -1,0 +1,27 @@
+template:
+  name: gitSync
+  identifier: gitSync
+  versionLabel: "1"
+  type: Stage
+  projectIdentifier: njh
+  orgIdentifier: default
+  tags: {}
+  spec:
+    type: Approval
+    spec:
+      execution:
+        steps:
+          - step:
+              type: ShellScript
+              name: dsa
+              identifier: dsa
+              spec:
+                shell: Bash
+                onDelegate: true
+                source:
+                  type: Inline
+                  spec:
+                    script: <+input>
+                environmentVariables: []
+                outputVariables: []
+              timeout: 10m

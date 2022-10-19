@@ -15,6 +15,6 @@ template:
       source:
         type: Inline
         spec:
-          script: rew
+          script: <+input>
       environmentVariables: []
       outputVariables: []

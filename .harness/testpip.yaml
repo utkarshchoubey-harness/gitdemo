@@ -1,0 +1,13 @@
+pipeline:
+  name: testpip
+  identifier: testpip
+  projectIdentifier: njh
+  orgIdentifier: default
+  tags: {}
+  stages:
+    - stage:
+        name: rew
+        identifier: rew
+        template:
+          templateRef: testStage1
+          versionLabel: wq

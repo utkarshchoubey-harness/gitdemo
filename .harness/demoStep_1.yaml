@@ -14,40 +14,7 @@ template:
       source:
         type: Inline
         spec:
-          script: <+input>
-      environmentVariables:
-        - name: rw3rwe
-          type: String
-          value: <+input>
-        - name: r34
-          type: String
-          value: <+input>
-        - name: yrtyr
-          type: String
-          value: <+input>
-        - name: tre
-          type: String
-          value: <+input>
-        - name: gr
-          type: String
-          value: <+input>
-        - name: rew
-          type: String
-          value: <+input>
-        - name: hy
-          type: String
-          value: <+input>
-        - name: gf
-          type: String
-          value: <+input>
-        - name: tyu
-          type: String
-          value: <+input>
-        - name: fdsfewrfwrwer
-          type: String
-          value: <+input>
-        - name: y56
-          type: String
-          value: <+input>
+          script: as
+      environmentVariables: []
       outputVariables: []
-    timeout: <+input>
+    timeout: 1m

@@ -11,3 +11,19 @@ pipeline:
       template:
         templateRef: "demoStage"
         versionLabel: "1"
+        templateInputs:
+          type: "Approval"
+          spec:
+            execution:
+              steps:
+              - step:
+                  identifier: "rew"
+                  template:
+                    templateInputs:
+                      type: "ShellScript"
+                      spec:
+                        source:
+                          type: "Inline"
+                          spec:
+                            script: "<+input>"
+                      timeout: "<+input>"

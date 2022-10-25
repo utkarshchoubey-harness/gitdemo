@@ -1,29 +1,53 @@
 pipeline:
-  name: "rew"
-  identifier: "rew"
-  projectIdentifier: "njh"
-  orgIdentifier: "default"
+  name: rew
+  identifier: rew
+  projectIdentifier: njh
+  orgIdentifier: default
   tags: {}
   stages:
-  - stage:
-      name: "gdf"
-      identifier: "gdf"
-      template:
-        templateRef: "demoStage"
-        versionLabel: "1"
-        templateInputs:
-          type: "Approval"
-          spec:
-            execution:
-              steps:
-              - step:
-                  identifier: "rew"
-                  template:
-                    templateInputs:
-                      type: "ShellScript"
-                      spec:
-                        source:
-                          type: "Inline"
+    - stage:
+        name: gdf
+        identifier: gdf
+        template:
+          templateRef: demoStage
+          versionLabel: "1"
+          templateInputs:
+            type: Approval
+            spec:
+              execution:
+                steps:
+                  - step:
+                      identifier: rew
+                      template:
+                        templateInputs:
+                          type: ShellScript
                           spec:
-                            script: "<+input>"
-                      timeout: "<+input>"
+                            source:
+                              type: Inline
+                              spec:
+                                script: <+input>
+                          timeout: <+input>
+    - stage:
+        name: gfd
+        identifier: gfd
+        description: ""
+        type: Approval
+        spec:
+          execution:
+            steps:
+              - step:
+                  name: gdf
+                  identifier: gdf
+                  type: HarnessApproval
+                  timeout: 1d
+                  spec:
+                    approvalMessage: |-
+                      Please review the following information
+                      and approve the pipeline progression
+                    includePipelineExecutionHistory: true
+                    approvers:
+                      minimumCount: 1
+                      disallowPipelineExecutor: false
+                      userGroups: <+input>
+                    approverInputs: []
+        tags: {}

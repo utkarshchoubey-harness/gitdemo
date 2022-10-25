@@ -1,0 +1,16 @@
+template:
+  name: pip1
+  identifier: pip1
+  versionLabel: "1"
+  type: Pipeline
+  projectIdentifier: Default
+  orgIdentifier: default
+  tags: {}
+  spec:
+    stages:
+      - stage:
+          name: dgfd
+          identifier: dgfd
+          template:
+            templateRef: stg1
+            versionLabel: "1"

@@ -1,16 +1,27 @@
 template:
-  name: pip1
-  identifier: pip1
+  name: "pip1"
+  identifier: "pip1"
   versionLabel: "1"
-  type: Pipeline
-  projectIdentifier: Default
-  orgIdentifier: default
+  type: "Pipeline"
+  projectIdentifier: "Default"
+  orgIdentifier: "default"
   tags: {}
   spec:
     stages:
-      - stage:
-          name: dgfd
-          identifier: dgfd
-          template:
-            templateRef: stg1
-            versionLabel: "1"
+    - stage:
+        name: "dgfd"
+        identifier: "dgfd"
+        template:
+          templateRef: "stg1"
+          versionLabel: "1"
+          templateInputs:
+            type: "Approval"
+            spec:
+              execution:
+                steps:
+                - step:
+                    identifier: "fg"
+                    template:
+                      templateInputs:
+                        type: "ShellScript"
+                        timeout: "<+input>"

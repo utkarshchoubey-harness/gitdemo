@@ -16,5 +16,8 @@ template:
         type: Inline
         spec:
           script: <+input>
-      environmentVariables: []
+      environmentVariables:
+        - name: rwer
+          type: String
+          value: <+input>
       outputVariables: []

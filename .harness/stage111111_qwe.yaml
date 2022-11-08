@@ -17,6 +17,3 @@ template:
             template:
               templateRef: "step11111"
               versionLabel: "1"
-              templateInputs:
-                type: "ShellScript"
-                timeout: "<+input>"

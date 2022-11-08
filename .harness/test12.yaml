@@ -1,0 +1,30 @@
+pipeline:
+  name: test12
+  identifier: test12
+  template:
+    templateRef: pipeline111111
+    versionLabel: "1"
+    templateInputs:
+      stages:
+        - stage:
+            identifier: gdfg
+            template:
+              templateInputs:
+                type: Approval
+                spec:
+                  execution:
+                    steps:
+                      - step:
+                          identifier: das
+                          template:
+                            templateInputs:
+                              type: ShellScript
+                              spec:
+                                source:
+                                  type: Inline
+                                  spec:
+                                    script: <+input>
+                              timeout: <+input>
+  tags: {}
+  projectIdentifier: njh
+  orgIdentifier: default

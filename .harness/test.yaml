@@ -1,0 +1,9 @@
+pipeline:
+  name: test
+  identifier: test
+  template:
+    templateRef: pipeline111111
+    versionLabel: "1"
+  tags: {}
+  projectIdentifier: njh
+  orgIdentifier: default

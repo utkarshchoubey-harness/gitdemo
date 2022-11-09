@@ -1,27 +1,27 @@
 pipeline:
-  name: PipelineRemoteWithInlineApprovalSTep
-  identifier: PipelineRemoteWithInlineApprovalSTep
-  projectIdentifier: utkarsh
-  orgIdentifier: utkarsh
+  name: "PipelineRemoteWithInlineApprovalSTep"
+  identifier: "PipelineRemoteWithInlineApprovalSTep"
+  projectIdentifier: "utkarsh"
+  orgIdentifier: "utkarsh"
   tags: {}
   stages:
-    - stage:
-        name: rg
-        identifier: rg
-        description: ""
-        type: Approval
-        spec:
-          execution:
-            steps:
-              - step:
-                  name: re
-                  identifier: re
-                  template:
-                    templateRef: org.approvalInline
-                    versionLabel: "1"
-                    templateInputs:
-                      type: HarnessApproval
-                      spec:
-                        approvers:
-                          userGroups: <+input>
-        tags: {}
+  - stage:
+      name: "rg"
+      identifier: "rg"
+      description: ""
+      type: "Approval"
+      spec:
+        execution:
+          steps:
+          - step:
+              name: "re"
+              identifier: "re"
+              template:
+                templateRef: "org.approvalInline"
+                versionLabel: "1"
+                templateInputs:
+                  type: "HarnessApproval"
+                  spec:
+                    approvers:
+                      userGroups: "<+input>.allowedValues(org._organization_all_users,account.synctest,account._account_all_users)"
+      tags: {}

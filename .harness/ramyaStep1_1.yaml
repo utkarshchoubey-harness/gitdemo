@@ -15,6 +15,6 @@ template:
       source:
         type: Inline
         spec:
-          script: <+input>.allowedValues(2,3)
+          script: <+input>.allowedValues(2,3,4,5)
       environmentVariables: []
       outputVariables: []

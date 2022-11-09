@@ -1,19 +1,13 @@
 pipeline:
-  name: remotePipelineInlineStagetemp
-  identifier: remotePipelineInlineStagetemp
-  projectIdentifier: utkarsh
-  orgIdentifier: utkarsh
+  name: "remotePipelineInlineStagetemp"
+  identifier: "remotePipelineInlineStagetemp"
+  projectIdentifier: "utkarsh"
+  orgIdentifier: "utkarsh"
   tags: {}
   stages:
-    - stage:
-        name: fdsf
-        identifier: fdsf
-        template:
-          templateRef: org.inlineStageTemplate
-          versionLabel: "1"
-          templateInputs:
-            type: Approval
-            variables:
-              - name: stage
-                type: String
-                value: <+input>
+  - stage:
+      name: "fdsf"
+      identifier: "fdsf"
+      template:
+        templateRef: "org.inlineStageTemplate"
+        versionLabel: "1"

@@ -24,7 +24,7 @@ pipeline:
                                 source:
                                   type: Inline
                                   spec:
-                                    script: <+input>.allowedValues(1,2,3)
+                                    script: "1"
   tags: {}
   projectIdentifier: njh
   orgIdentifier: default

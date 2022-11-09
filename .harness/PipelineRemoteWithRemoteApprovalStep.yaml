@@ -1,28 +1,28 @@
 pipeline:
-  name: PipelineRemoteWithRemoteApprovalStep
-  identifier: PipelineRemoteWithRemoteApprovalStep
-  projectIdentifier: utkarsh
-  orgIdentifier: utkarsh
+  name: "PipelineRemoteWithRemoteApprovalStep"
+  identifier: "PipelineRemoteWithRemoteApprovalStep"
+  projectIdentifier: "utkarsh"
+  orgIdentifier: "utkarsh"
   tags: {}
   stages:
-    - stage:
-        name: uyi
-        identifier: uyi
-        description: ""
-        type: Approval
-        spec:
-          execution:
-            steps:
-              - step:
-                  name: iyu
-                  identifier: iyu
-                  template:
-                    templateRef: pipelineApprovalStep
-                    versionLabel: q
-                    templateInputs:
-                      type: HarnessApproval
-                      timeout: <+input>
-                      spec:
-                        approvers:
-                          userGroups: <+input>
-        tags: {}
+  - stage:
+      name: "uyi"
+      identifier: "uyi"
+      description: ""
+      type: "Approval"
+      spec:
+        execution:
+          steps:
+          - step:
+              name: "iyu"
+              identifier: "iyu"
+              template:
+                templateRef: "pipelineApprovalStep"
+                versionLabel: "q"
+                templateInputs:
+                  type: "HarnessApproval"
+                  timeout: "<+input>.regex(2.*)"
+                  spec:
+                    approvers:
+                      userGroups: "<+input>"
+      tags: {}

@@ -1,0 +1,15 @@
+template:
+  name: PipelineRepo1
+  identifier: PipelineRepo1
+  versionLabel: "1"
+  type: Pipeline
+  orgIdentifier: utkarsh
+  tags: {}
+  spec:
+    stages:
+      - stage:
+          name: gr
+          identifier: gr
+          template:
+            templateRef: org.StageRepo2Def
+            versionLabel: "1"

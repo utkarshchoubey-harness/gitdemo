@@ -29,4 +29,4 @@ template:
                               source:
                                 type: Inline
                                 spec:
-                                  script: <+input>.allowedValues(1,2,3)
+                                  script: <+input>.allowedValues(2,3)

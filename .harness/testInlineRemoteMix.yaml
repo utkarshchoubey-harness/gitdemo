@@ -1,0 +1,25 @@
+pipeline:
+  name: testInlineRemoteMix
+  identifier: testInlineRemoteMix
+  template:
+    templateRef: pipelineInline
+    versionLabel: ew
+    templateInputs:
+      stages:
+        - stage:
+            identifier: dfg
+            template:
+              templateInputs:
+                type: Approval
+                spec:
+                  execution:
+                    steps:
+                      - step:
+                          identifier: rwe
+                          template:
+                            templateInputs:
+                              type: ShellScript
+                              timeout: <+input>
+  tags: {}
+  projectIdentifier: njh
+  orgIdentifier: default

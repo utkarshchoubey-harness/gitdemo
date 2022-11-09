@@ -16,3 +16,8 @@ template:
               template:
                 templateRef: org.step11
                 versionLabel: "1"
+    variables:
+      - name: fsd
+        type: String
+        description: ""
+        value: <+input>

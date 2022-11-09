@@ -1,5 +1,5 @@
 template:
-  name: stepInline1
+  name: stepremote1
   identifier: stepInline1
   versionLabel: "1"
   type: Step

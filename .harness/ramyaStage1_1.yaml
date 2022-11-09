@@ -1,0 +1,42 @@
+template:
+  name: ramyaStage1
+  identifier: ramyaStage1
+  versionLabel: "1"
+  type: Stage
+  projectIdentifier: njh
+  orgIdentifier: default
+  tags: {}
+  spec:
+    type: Deployment
+    spec:
+      deploymentType: Kubernetes
+      service:
+        serviceRef: hfgh
+      environment:
+        environmentRef: fghf
+        deployToAll: false
+        infrastructureDefinitions:
+          - identifier: jghj
+      execution:
+        steps:
+          - step:
+              name: rwer
+              identifier: rwer
+              template:
+                templateRef: ramyaStep1
+                versionLabel: "1"
+                templateInputs:
+                  type: ShellScript
+                  timeout: <+input>
+                  spec:
+                    source:
+                      type: Inline
+                      spec:
+                        script: <+input>.allowedValues(1,2,3)
+        rollbackSteps: []
+    failureStrategies:
+      - onFailure:
+          errors:
+            - AllErrors
+          action:
+            type: StageRollback

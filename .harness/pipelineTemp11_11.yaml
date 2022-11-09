@@ -1,0 +1,15 @@
+template:
+  name: pipelineTemp11
+  identifier: pipelineTemp11
+  versionLabel: "11"
+  type: Pipeline
+  orgIdentifier: utkarsh
+  tags: {}
+  spec:
+    stages:
+      - stage:
+          name: gfgd
+          identifier: gfgd
+          template:
+            templateRef: org.stage11
+            versionLabel: "11"

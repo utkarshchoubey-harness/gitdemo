@@ -1,0 +1,18 @@
+template:
+  name: stage11
+  identifier: stage11
+  versionLabel: "11"
+  type: Stage
+  orgIdentifier: utkarsh
+  tags: {}
+  spec:
+    type: Approval
+    spec:
+      execution:
+        steps:
+          - step:
+              name: fdsf
+              identifier: fdsf
+              template:
+                templateRef: org.step11
+                versionLabel: "1"

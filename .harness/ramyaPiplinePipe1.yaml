@@ -1,30 +1,30 @@
 pipeline:
-  name: ramyaPiplinePipe1
-  identifier: ramyaPiplinePipe1
+  name: "ramyaPiplinePipe1"
+  identifier: "ramyaPiplinePipe1"
   template:
-    templateRef: ramyaPipeline1
+    templateRef: "ramyaPipeline1"
     versionLabel: "1"
     templateInputs:
       stages:
-        - stage:
-            identifier: gf
-            template:
-              templateInputs:
-                type: Deployment
-                spec:
-                  execution:
-                    steps:
-                      - step:
-                          identifier: rwer
-                          template:
-                            templateInputs:
-                              type: ShellScript
-                              timeout: <+input>
+      - stage:
+          identifier: "gf"
+          template:
+            templateInputs:
+              type: "Deployment"
+              spec:
+                execution:
+                  steps:
+                  - step:
+                      identifier: "rwer"
+                      template:
+                        templateInputs:
+                          type: "ShellScript"
+                          timeout: "<+input>"
+                          spec:
+                            source:
+                              type: "Inline"
                               spec:
-                                source:
-                                  type: Inline
-                                  spec:
-                                    script: "1"
+                                script: "<+input>.allowedValues(2,3)"
   tags: {}
-  projectIdentifier: njh
-  orgIdentifier: default
+  projectIdentifier: "njh"
+  orgIdentifier: "default"

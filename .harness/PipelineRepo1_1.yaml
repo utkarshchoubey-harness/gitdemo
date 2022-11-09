@@ -1,15 +1,30 @@
 template:
-  name: PipelineRepo1
-  identifier: PipelineRepo1
+  name: "PipelineRepo1"
+  identifier: "PipelineRepo1"
   versionLabel: "1"
-  type: Pipeline
-  orgIdentifier: utkarsh
+  type: "Pipeline"
+  orgIdentifier: "utkarsh"
   tags: {}
   spec:
     stages:
-      - stage:
-          name: gr
-          identifier: gr
-          template:
-            templateRef: org.StageRepo2Def
-            versionLabel: "1"
+    - stage:
+        name: "gr"
+        identifier: "gr"
+        template:
+          templateRef: "org.StageRepo2Def"
+          versionLabel: "1"
+          templateInputs:
+            type: "Approval"
+            spec:
+              execution:
+                steps:
+                - step:
+                    identifier: "ter"
+                    template:
+                      templateInputs:
+                        type: "ShellScript"
+                        spec:
+                          source:
+                            type: "Inline"
+                            spec:
+                              script: "<+input>"

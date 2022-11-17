@@ -1,29 +1,25 @@
 pipeline:
-  name: pippp1111111111
-  identifier: pippp1111111111
+  name: "pippp1111111111"
+  identifier: "pippp1111111111"
   template:
-    templateRef: pipeline111111
+    templateRef: "pipeline111111"
     versionLabel: "1"
     templateInputs:
       stages:
-        - stage:
-            identifier: gdfg
-            template:
-              templateInputs:
-                type: Approval
-                spec:
-                  execution:
-                    steps:
-                      - step:
-                          identifier: das
-                          template:
-                            templateInputs:
-                              type: ShellScript
-                              spec:
-                                source:
-                                  type: Inline
-                                  spec:
-                                    script: <+input>
+      - stage:
+          identifier: "gdfg"
+          template:
+            templateInputs:
+              type: "Approval"
+              spec:
+                execution:
+                  steps:
+                  - step:
+                      identifier: "das"
+                      template:
+                        templateInputs:
+                          type: "ShellScript"
+                          timeout: "<+input>"
   tags: {}
-  projectIdentifier: njh
-  orgIdentifier: default
+  projectIdentifier: "njh"
+  orgIdentifier: "default"

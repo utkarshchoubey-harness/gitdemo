@@ -1,19 +1,26 @@
 template:
-  name: nghSTage1
-  identifier: nghSTage1
+  name: "nghSTage1"
+  identifier: "nghSTage1"
   versionLabel: "1"
-  type: Stage
-  projectIdentifier: njh
-  orgIdentifier: default
+  type: "Stage"
+  projectIdentifier: "njh"
+  orgIdentifier: "default"
   tags: {}
   spec:
-    type: Approval
+    type: "Approval"
     spec:
       execution:
         steps:
-          - step:
-              name: rwere
-              identifier: rwere
-              template:
-                templateRef: nghstep1
-                versionLabel: "1"
+        - step:
+            name: "rwere"
+            identifier: "rwere"
+            template:
+              templateRef: "nghstep1"
+              versionLabel: "1"
+              templateInputs:
+                type: "ShellScript"
+                spec:
+                  source:
+                    type: "Inline"
+                    spec:
+                      script: "<+input>"

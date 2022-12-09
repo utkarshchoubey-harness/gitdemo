@@ -1,0 +1,30 @@
+pipeline:
+  name: pipelineOldGitDelete
+  identifier: pipelineOldGitDelete
+  projectIdentifier: testdelete
+  orgIdentifier: default
+  tags: {}
+  stages:
+    - stage:
+        name: dwq
+        identifier: dwq
+        description: ""
+        type: Approval
+        spec:
+          execution:
+            steps:
+              - step:
+                  type: ShellScript
+                  name: Shell Script
+                  identifier: ShellScript
+                  spec:
+                    shell: Bash
+                    onDelegate: true
+                    source:
+                      type: Inline
+                      spec:
+                        script: hg
+                    environmentVariables: []
+                    outputVariables: []
+                  timeout: 10m
+        tags: {}

@@ -1,0 +1,33 @@
+template:
+  name: pipelineTempOldGit
+  identifier: pipelineTempOldGit
+  versionLabel: "1"
+  type: Pipeline
+  projectIdentifier: testdelete
+  orgIdentifier: default
+  tags: {}
+  spec:
+    stages:
+      - stage:
+          name: dw
+          identifier: dw
+          description: ""
+          type: Approval
+          spec:
+            execution:
+              steps:
+                - step:
+                    type: ShellScript
+                    name: Shell Script
+                    identifier: ShellScript
+                    spec:
+                      shell: Bash
+                      onDelegate: true
+                      source:
+                        type: Inline
+                        spec:
+                          script: ger
+                      environmentVariables: []
+                      outputVariables: []
+                    timeout: 10m
+          tags: {}

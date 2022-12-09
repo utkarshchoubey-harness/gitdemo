@@ -1,0 +1,31 @@
+pipeline:
+  name: ggll
+  identifier: ggll
+  projectIdentifier: delete
+  orgIdentifier: default
+  tags: {}
+  stages:
+    - stage:
+        name: bh
+        identifier: bh
+        description: ""
+        type: Approval
+        spec:
+          execution:
+            steps:
+              - step:
+                  name: fv
+                  identifier: fv
+                  type: HarnessApproval
+                  timeout: 1d
+                  spec:
+                    approvalMessage: |-
+                      Please review the following information
+                      and approve the pipeline progression
+                    includePipelineExecutionHistory: true
+                    approvers:
+                      minimumCount: 1
+                      disallowPipelineExecutor: false
+                      userGroups: <+input>
+                    approverInputs: []
+        tags: {}

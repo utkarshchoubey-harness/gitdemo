@@ -1,0 +1,12 @@
+template:
+  name: remote-default-branch-step-template
+  identifier: remotedefaultbranchsteptemplate
+  versionLabel: v1
+  type: Step
+  projectIdentifier: defaultproject
+  orgIdentifier: default
+  tags: {}
+  spec:
+    type: Wait
+    spec:
+      duration: 10m

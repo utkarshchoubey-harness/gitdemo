@@ -1,0 +1,20 @@
+template:
+  name: test wed 14
+  identifier: test_wed_14
+  versionLabel: v1
+  type: Step
+  projectIdentifier: defaultproject
+  orgIdentifier: default
+  tags: {}
+  spec:
+    timeout: 10m
+    type: ShellScript
+    spec:
+      shell: Bash
+      onDelegate: true
+      source:
+        type: Inline
+        spec:
+          script: echo "test"
+      environmentVariables: []
+      outputVariables: []

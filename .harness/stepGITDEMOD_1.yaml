@@ -15,6 +15,6 @@ template:
       source:
         type: Inline
         spec:
-          script: gfd
+          script: <+input>
       environmentVariables: []
       outputVariables: []

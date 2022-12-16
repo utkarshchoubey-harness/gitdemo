@@ -1,0 +1,22 @@
+pipeline:
+  name: pipe1
+  identifier: pipe1
+  projectIdentifier: defaultproject
+  orgIdentifier: default
+  tags: {}
+  stages:
+    - stage:
+        name: tre
+        identifier: tre
+        description: ""
+        type: Approval
+        spec:
+          execution:
+            steps:
+              - step:
+                  name: ter
+                  identifier: ter
+                  template:
+                    templateRef: remotefeaturebranchsteptemplate
+                    versionLabel: v1
+        tags: {}

@@ -1,0 +1,22 @@
+pipeline:
+  name: tret
+  identifier: tret
+  projectIdentifier: njh
+  orgIdentifier: default
+  tags: {}
+  stages:
+    - stage:
+        name: tret
+        identifier: tret
+        description: ""
+        type: Approval
+        spec:
+          execution:
+            steps:
+              - step:
+                  name: tret
+                  identifier: tret
+                  template:
+                    templateRef: ytry
+                    versionLabel: yrty
+        tags: {}

@@ -1,0 +1,21 @@
+pipeline:
+  name: pip feature 19 dec
+  identifier: pip_feature_19_dec
+  template:
+    templateRef: pip_template_19_dec
+    versionLabel: v1
+    templateInputs:
+      stages:
+        - stage:
+            identifier: s1
+            type: Custom
+            spec:
+              execution:
+                steps:
+                  - step:
+                      identifier: s1
+                      type: ShellScript
+                      timeout: <+input>
+  tags: {}
+  projectIdentifier: defaultproject
+  orgIdentifier: default

@@ -1,0 +1,20 @@
+template:
+  name: step template default branch 19 dec
+  identifier: step_template_default_branch_19_dec
+  versionLabel: v1
+  type: Step
+  projectIdentifier: defaultproject
+  orgIdentifier: default
+  tags: {}
+  spec:
+    timeout: <+input>
+    type: ShellScript
+    spec:
+      shell: Bash
+      onDelegate: true
+      source:
+        type: Inline
+        spec:
+          script: echo "asd"
+      environmentVariables: []
+      outputVariables: []

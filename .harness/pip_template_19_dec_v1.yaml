@@ -1,0 +1,33 @@
+template:
+  name: pip template 19 dec
+  identifier: pip_template_19_dec
+  versionLabel: v1
+  type: Pipeline
+  projectIdentifier: defaultproject
+  orgIdentifier: default
+  tags: {}
+  spec:
+    stages:
+      - stage:
+          name: s1
+          identifier: s1
+          description: ""
+          type: Custom
+          spec:
+            execution:
+              steps:
+                - step:
+                    type: ShellScript
+                    name: s1
+                    identifier: s1
+                    spec:
+                      shell: Bash
+                      onDelegate: true
+                      source:
+                        type: Inline
+                        spec:
+                          script: echo "test"
+                      environmentVariables: []
+                      outputVariables: []
+                    timeout: 10m
+          tags: {}

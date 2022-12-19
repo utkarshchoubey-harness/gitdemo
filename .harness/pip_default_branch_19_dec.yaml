@@ -1,0 +1,22 @@
+pipeline:
+  name: pip default branch 19 dec
+  identifier: pip_default_branch_19_dec
+  projectIdentifier: defaultproject
+  orgIdentifier: default
+  tags: {}
+  stages:
+    - stage:
+        name: sdf
+        identifier: sdf
+        description: ""
+        type: Custom
+        spec:
+          execution:
+            steps:
+              - step:
+                  type: Wait
+                  name: addad
+                  identifier: addad
+                  spec:
+                    duration: 10s
+        tags: {}

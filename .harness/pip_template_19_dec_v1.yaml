@@ -29,5 +29,5 @@ template:
                           script: echo "test"
                       environmentVariables: []
                       outputVariables: []
-                    timeout: 10m
+                    timeout: <+input>
           tags: {}

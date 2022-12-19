@@ -19,4 +19,13 @@ pipeline:
                   identifier: addad
                   spec:
                     duration: 10s
+              - step:
+                  name: sdfdsffsdf
+                  identifier: sdfdsffsdf
+                  template:
+                    templateRef: step_template_default_branch_19_dec
+                    versionLabel: v1
+                    templateInputs:
+                      type: ShellScript
+                      timeout: <+input>
         tags: {}

@@ -1,0 +1,20 @@
+template:
+  name: branch switch 20 dec 817
+  identifier: branch_switch_20_dec_817
+  versionLabel: v1
+  type: Step
+  projectIdentifier: defaultproject
+  orgIdentifier: default
+  tags: {}
+  spec:
+    timeout: 10m
+    type: ShellScript
+    spec:
+      shell: Bash
+      onDelegate: true
+      source:
+        type: Inline
+        spec:
+          script: echo "asd"
+      environmentVariables: []
+      outputVariables: []

@@ -1,0 +1,279 @@
+template:
+  name: SonarQube Scan
+  identifier: Step_Template_SonarQube_Scans
+  type: Step
+  tags: {}
+  spec:
+    type: Run
+    spec:
+      connectorRef: <+input>
+      image: <+input>
+      shell: Bash
+      command: |
+        set +x
+
+
+        ## variables ##
+        #sonar-project.properties file must exist and not be empty
+        if ! [[ -s sonar-project.properties ]]; then
+          echo "Github repo is missing required configuration file sonar-project.properties."
+          exit 1
+        fi
+
+        # Set variables
+        DEPUTY_NOTIFY="false"
+        # "${SONARQUBE_TOKEN}"
+        # "${RELEASE_BRANCH}"
+        # "${SONAR_HOST}"
+        # "${BUILD_TYPE}" pipeline.properties.ci.codebase.build.type
+        # "${BUILD_ID}" pipeline.sequenceId
+        # "${PR_NUM}" codebase.prNumber
+        # "${CODE_REPO}" pipeline.properties.ci.codebase.repoName
+        # "${TARGET_BRANCH}" codebase.targetBranch
+        # "${COMMIT_SHA}" codebase.commitSha
+        PROJECT_KEY=$(cat sonar-project.properties | grep "sonar.projectKey=" | sed s/sonar\.projectKey=//)
+        BRANCH_NAME=$(if [[ ${BUILD_TYPE} == "PR" ]]; then echo ${SOURCE_BRANCH}; else echo ${WORKING_BRANCH}; fi) #runtime vars - SOURCE_BRANCH: codebase.sourceBranch, - WORKING_BRANCH: codebase.branch
+        HOST_URL_PRESENT=$(cat sonar-project.properties | grep "sonar.host.url=" | sed s/sonar\.host\.url=//)
+
+
+        ## validate ##
+        # Validate and set remaining variables
+        if [[ "${SONAR_HOST}" == "null" ]] && [[ -z "${HOST_URL_PRESENT}" ]]; then
+          echo "SONAR_HOST is not avaliable to the step, please ensure it is defined in either the project's manifest.yaml or sonar-project.properties file, or otherwise passed into the pipeline as a variable."
+          exit 1
+        elif [[ "${RELEASE_BRANCH}" == "null" ]]; then
+          echo "Github release branch is not available to the step, please ensure it is either defined in the project's manifest.yaml file or passed into the pipeline as a variable."
+          exit 1
+        elif [[ "${BRANCH_NAME}" == "null" ]] || [[ -z "${BRANCH_NAME}" ]]; then
+          echo "Github build branch name not available to step, please check your codebase is configured correctly."
+          exit 1
+        fi
+
+        # Sonarqube host url must be provided either in the sonar properties file, manifest.yaml file, or passed as a variable in the harness pipeline
+        if ! [[ -z "${HOST_URL_PRESENT}" ]] && [[ "$SONAR_HOST" == "null" ]]; then
+          echo "SONAR_HOST is not set in manifest.yaml or pipeline, using sonar-project.properties variable sonar.host.url as SonarQube host."
+          SONAR_URL="${HOST_URL_PRESENT}"
+        elif [[ "${HOST_URL_PRESENT}" ]] && [[ "$SONAR_HOST" != "null" ]]; then
+          echo "SONAR_HOST defined either in the project's manifest file or passed into the pipeline, and defined in the project's sonar-project.properties file. Manifest.yaml / pipeline variable being used as preference."
+          SONAR_URL="${SONAR_HOST}"
+        elif [[ -z "${HOST_URL_PRESENT}" ]] && [[ "$SONAR_HOST" != "null" ]]; then
+          echo "Using SONAR_HOST defined in manifest.yaml or pipeline input set as SonarQube host."
+          SONAR_URL="${SONAR_HOST}"
+        fi
+
+        # Sonar host url is a valid one -- Set deputy skip output variable if not using default host (https://sonarqube.aus.thenational.com/sonar)
+        if [[ $SONAR_URL == "https://sonarqube.aus.thenational.com/sonar" ]]; then
+          echo "Using default SonarQube URL, scan results will be sent to Deputy on completion."
+          DEPUTY_NOTIFY="true"
+        elif [[ $SONAR_URL == "http://sonarqube-staging.lz019.awsnp.national.com.au/sonar" ]] || [[ $SONAR_URL == "http://sonarqube-dev.lz019.awsnp.national.com.au/sonar" ]] || [[ $SONAR_URL == "https://preprod-sonarqube.aus.thenational.com/sonar" ]]; then
+          echo "Using non-default SonarQube URL, scan results will not be sent to Deputy."
+        else
+          echo "Invalid SonarQube URL provided, please replace your configuration with one of the following:"
+          echo "   - https://sonarqube.aus.thenational.com/sonar"
+          echo "   - http://sonarqube-staging.lz019.awsnp.national.com.au/sonar"
+          echo "   - http://sonarqube-dev.lz019.awsnp.national.com.au/sonar"
+          echo "   - https://preprod-sonarqube.aus.thenational.com/sonar"
+          exit 1
+        fi
+
+        PROJECT_EXISTS=$(curl -u "${SONARQUBE_TOKEN}": -s -o /dev/null -w "%{http_code}" "${SONAR_URL}/api/components/show?component=${PROJECT_KEY}")
+
+        # Log whether project key already exists in sonarqube
+        if [[ ${PROJECT_EXISTS} -eq 200 ]]; then
+          echo "${PROJECT_KEY} found in SonarQube."
+        elif [[ ${PROJECT_EXISTS} -eq 404 ]]; then
+          echo "${PROJECT_KEY} not found in SonarQube."
+        elif [[ ${PROJECT_EXISTS} -eq 401 ]] || [[ ${PROJECT_EXISTS} -eq 403 ]]; then
+          echo "${PROJECT_EXISTS}: Insufficient permissions to query SonarQube. Check token."
+          exit 1
+        else
+          echo "Invalid http response from SonarQube. Response is: ${PROJECT_EXISTS}. Please check the sonar host ("${SONAR_URL}") and token provided."
+          exit 1
+        fi
+
+        ## Retrieve lombok java library from Artifactory -- currently used in nabserv to prevent scans showing "unused private fields" smells that aren't there ##
+        curl -o lombok.jar https://artifactory.ext.national.com.au/artifactory/maven-repo1-cache/org/projectlombok/lombok/1.18.12/lombok-1.18.12.jar
+
+
+        ## functions ##
+        function isMainBranch() {
+          # Checks if provided (release) branch matches the branch marked as main in sonarqube, returns false if not main or not found
+          BRANCH=$1
+          IS_MAIN=$(curl -u ${SONARQUBE_TOKEN}: -s "${SONAR_URL}/api/project_branches/list?project=${PROJECT_KEY}" | sed s/.*\"$BRANCH\",\"isMain\":// | sed s/,\".*//)
+          if [[ $IS_MAIN == "true" ]] || [[ $IS_MAIN == "false" ]]; then
+            echo "$IS_MAIN"
+          else
+            echo "not_found"
+          fi
+        }
+
+        function runSonarScan() {
+          # Perform sonarscan, differentiating between PR, main, and feature branch builds / scans
+          RUN_MAIN_SCAN=$1
+          if [[ "$RUN_MAIN_SCAN" == "true" ]]; then
+            # Run main (github default branch?) branch sonarscan
+            echo "Building main branch"
+            sonar-scanner \
+                  -Dsonar.login=${SONARQUBE_TOKEN} \
+                  -Dsonar.host.url=${SONAR_URL} \
+                  -Dsonar.projectVersion=${BUILD_ID} \
+                  -X
+          elif [[ ${BUILD_TYPE} == "PR" ]]; then
+            # Run PR sonarscan
+            echo "Building pull request ${PR_NUM}"
+            sonar-scanner \
+                  -Dsonar.login=${SONARQUBE_TOKEN} \
+                  -Dsonar.host.url=${SONAR_URL} \
+                  -Dsonar.projectVersion=${BUILD_ID} \
+                  -Dsonar.pullrequest.github.repository=${CODE_REPO} \
+                  -Dsonar.pullrequest.key=${PR_NUM} \
+                  -Dsonar.pullrequest.branch=${BRANCH_NAME} \
+                  -Dsonar.pullrequest.base=${TARGET_BRANCH} \
+                  -Dsonar.scm.revision=${COMMIT_SHA} \
+                  -X
+          else
+            # Run non-main branch sonarscan
+            echo "Building ${BRANCH_NAME} branch"
+            sonar-scanner \
+                  -Dsonar.login=${SONARQUBE_TOKEN} \
+                  -Dsonar.host.url=${SONAR_URL} \
+                  -Dsonar.projectVersion=${BUILD_ID} \
+                  -Dsonar.branch.name=${BRANCH_NAME} \
+                  -X
+          fi
+        }
+
+        # Set main branch in sonarqube function
+        function setMainBranch() {
+          RELEASE_IS_MAIN_BRANCH=$1
+          if [[ $RELEASE_IS_MAIN_BRANCH == "true" ]]; then
+            echo "$RELEASE_BRANCH is already the main branch."
+          else
+            if [[ $RELEASE_IS_MAIN_BRANCH == "false" ]]; then
+              echo "Deleting existing branch named ${RELEASE_BRANCH} prior to rename."
+              # Delete branch
+              DELETE_BRANCH=$(curl -X POST -u ${SONARQUBE_TOKEN}: -s -o/dev/null -w "%{http_code}" ${SONAR_URL}/api/project_branches/delete?project=${PROJECT_KEY}'&'branch=${RELEASE_BRANCH})
+              echo "Delete branch http response code: $DELETE_BRANCH"
+            else
+             echo "No branch named ${RELEASE_BRANCH} exists yet."
+            fi
+            # Rename main branch as $RELEASE_BRANCH in sonarqube
+            RENAME=$(curl -X POST -u ${SONARQUBE_TOKEN}: -s -o/dev/null -w "%{http_code}" ${SONAR_URL}/api/project_branches/rename?project=${PROJECT_KEY}'&'name=${RELEASE_BRANCH})
+            if [[ $RENAME -ne 200 ]]; then
+              echo "Failed to rename main branch to ${RELEASE_BRANCH} - this is expected - you may want to do this manually if you would like the correct branch details to show in SonarQube"
+            fi
+          fi
+        }
+
+        function buildMain {
+          # Determines whether a main scan should be run (either as an additional first scan prior to a branch or PR scan, or as the primary scan for the build)
+          RELEASE_IS_MAIN_BRANCH=$1
+          if [[ $RELEASE_IS_MAIN_BRANCH == "true" ]] && [[ $PROJECT_EXISTS -eq 200 ]] &&
+              [[ $BRANCH_NAME == $RELEASE_BRANCH ]]; then
+            if [[ $BUILD_TYPE == "PR" ]]; then
+              echo "false"
+              return
+            fi
+            echo "true"
+            return
+          elif [[ $PROJECT_EXISTS -ne 200 ]]; then
+            CATCH_RESP=$(runSonarScan "true")
+            echo "false"
+            return
+          fi
+          echo "false"
+        }
+
+        function cleanUp {
+          rm -r .scannerwork
+        }
+
+        function pollScanResult {
+          SCAN_ID=$1
+          # Poll status of scan
+          i=0
+          TASK_STATUS="IN_PROGRESS"
+          while ([[ $TASK_STATUS == "IN_PROGRESS" ]] || [[ $TASK_STATUS == "PENDING" ]]) && [[ $i -lt 20 ]]; do
+            sleep $((10 * $i))
+            TASK_STATUS=$(curl -u ${SONARQUBE_TOKEN}: -s "${SONAR_URL}/api/ce/task?id=${SCAN_ID}"| grep -m 1 "\"status\":\"" | sed s/.*\"status\":\"// | sed s/\",.*//)
+            echo "Waiting for sonar analysis completion retry $i status: ${TASK_STATUS}"
+            i=$((i+1))
+          done
+
+
+          # Check whether scan is complete
+          if [[ "$TASK_STATUS" == "PENDING" ]] || [[ "$TASK_STATUS" == "IN_PROGRESS" ]]; then
+            echo "Sonar quality check NOT complete, retry limit reached."
+            exit 1
+          elif [[ -z $TASK_STATUS ]]; then
+            echo "Something went wrong while polling the status of the scanner task."
+            exit 1
+          elif [[ "$TASK_STATUS" != "SUCCESS" ]]; then
+            echo "Sonar scan failed."
+            exit 1
+          else
+            SCAN_RESULT=$(curl -u ${SONARQUBE_TOKEN}: -s ${SONAR_URL}/api/qualitygates/project_status?projectKey=${PROJECT_KEY}'&branch='${BRANCH_NAME} | grep -m 1 "\"status\":\"" | sed s/.*\"status\":\"// | sed s/\",.*//)
+
+            echo "Sonar quality gate status for branch: ${BRANCH_NAME} is ${SCAN_RESULT}"
+
+            export taskId="${SCAN_ID}"
+            export scanResult="${SCAN_RESULT}"
+            export sendDeputySonarqubeEvent="${DEPUTY_NOTIFY}"
+
+            # Check scan result
+            if [[ "$SCAN_RESULT" != "OK" ]]; then
+              echo "Sonar quality gate check failed for branch ${BRANCH_NAME}"
+              exit 1
+            fi
+            echo "Sonar quality gate check succeeded for branch ${BRANCH_NAME}"
+          fi
+        }
+
+        ## main ##
+        # Check whether release branch is main branch in sonarqube
+        IS_MAIN_BRANCH=$(isMainBranch "${RELEASE_BRANCH}")
+
+        # Determine the type of scan to be run, and run an extra scan on the main branch if project doesn't already exist
+        BUILD_MAIN_BRANCH=$(buildMain "${IS_MAIN_BRANCH}")
+
+        # Run sonar scan based on boolen build main branch variable provided by the last fuction
+        runSonarScan "${BUILD_MAIN_BRANCH}"
+
+        # Set release branch as main branch in sonarqube if not already
+        setMainBranch "${IS_MAIN_BRANCH}"
+
+        # Get id of running scan task
+        TASK_ID=$(sed -n -e '/^ceTaskId=/p' .scannerwork/report-task.txt  | sed 's/ceTaskId=//g')
+
+        # Poll and respond to results of sonarscan
+        pollScanResult "${TASK_ID}"
+
+        if [ -e .scannerwork/report-task.txt ]; then
+            mkdir -p testArtifacts/sonarqube
+            cp -r .scannerwork/report-task.txt testArtifacts/sonarqube/report-task.txt
+        else
+            echo "The scan report doesn't exist. Please check logs."
+            exit 1
+        fi
+        # Delete .scannerwork folder
+        cleanUp
+      envVariables:
+        BUILD_TYPE: <+input>
+        BUILD_ID: <+input>
+        PR_NUM: <+input>
+        CODE_REPO: <+input>
+        TARGET_BRANCH: <+input>
+        COMMIT_SHA: <+input>
+        RELEASE_BRANCH: <+input>
+        SONAR_HOST: <+input>
+        SOURCE_BRANCH: <+input>
+        WORKING_BRANCH: <+input>
+        SONARQUBE_TOKEN: <+input>
+      outputVariables:
+        - name: sendDeputySonarqubeEvent
+        - name: scanResult
+        - name: taskId
+    when:
+      stageStatus: Success
+      condition: <+input>
+  versionLabel: V1.0.2

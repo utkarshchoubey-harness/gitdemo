@@ -1,0 +1,1265 @@
+template:
+  name: NABx Containerised MiniApps
+  identifier: Pipeline_Template_NABx_Containerised_MiniApps
+  type: Pipeline
+  spec:
+    properties:
+      ci:
+        codebase:
+          connectorRef: <+input>
+          repoName: <+input>
+          build: <+input>
+          sslVerify: true
+    stages:
+      - stage:
+          name: Initialise
+          identifier: Initialise
+          type: CI
+          spec:
+            cloneCodebase: true
+            infrastructure:
+              type: KubernetesDirect
+              spec:
+                connectorRef: <+pipeline.variables.k8sConnectorId>
+                namespace: <+pipeline.variables.k8sNamespace>
+                labels:
+                  AppCategory: <+pipeline.variables.appCategory>
+                  ApplicationID: <+pipeline.variables.appId>
+                  CostCentre: <+pipeline.variables.costCentre>
+                  Environment: <+pipeline.variables.environment>
+                  Owner: <+pipeline.variables.owner>
+                  SupportGroup: <+pipeline.variables.supportGroup>
+                  managed-eks/component: <+pipeline.variables.managedComponent>
+                automountServiceAccountToken: false
+                tolerations:
+                  - effect: NoSchedule
+                    key: managed-eks/ci-dedicated
+                    operator: Equal
+                    value: "true"
+                nodeSelector:
+                  managed-eks/ci-dedicated: "true"
+                containerSecurityContext:
+                  runAsNonRoot: true
+                  runAsUser: "1000"
+                os: Linux
+            execution:
+              steps:
+                - step:
+                    type: Run
+                    name: Deduce Configuration
+                    identifier: Deduce_Configuration
+                    spec:
+                      connectorRef: <+pipeline.variables.ArtifactoryCdRepositoryConnectorId>
+                      image: yq:4.13
+                      shell: Bash
+                      command: |-
+                        # Standardize to lowercase true/false strings, removing leading and trailing spaces
+                        GREEN='\033[0;32m'
+                        ORANGE='\033[0;33m'
+                        RED='\033[0;31m'
+                        NC='\033[0m' # No Color
+
+                        function sanitizeBoolean() {
+                            result="$1"
+                            if [[ $(echo "${1,,}" | xargs) == "true" ]] || [[ $(echo "${1,,}" | xargs) == "false" ]]; then
+                                result=$(echo "${1,,}" | xargs)
+                            fi
+                            echo $result
+                        }
+
+                        function extractConfig() {
+                            result="$1"
+                            if [[ -z "$1" ]]; then
+                                result=$(yq eval "$2" manifest.yaml)
+                            fi
+                            # Check for mandatory parameters
+                            if [ "$3" = true ]; then
+                                if [[ -z "$4" ]] && [ "$result" == "null" ]; then
+                                    echo -e "${RED} Mandatory value for \"$2\" is missing please ensure this is present in your manifest.yaml file or its corresponding pipeline input. ${NC}"
+                                    exit 1
+                                elif [ "$result" == "null" ]; then
+                                    echo -e "${GREEN} Default value of $4 used for \"$2\" ${NC}" >&2
+                                    result=$4
+                                fi
+                            fi
+
+                            result=$(sanitizeBoolean "$result")
+                            echo $result
+                        }
+
+                        function determineDependencyConfig() {
+                            override="$1"
+                            manifestPath="$2"
+                            default="$3"
+                            result=$(extractConfig "$override" "$manifestPath")
+                            if [[ -z "$result" ]] || [[ "$result" == "null" ]]; then
+                                result="$default"
+                            fi
+                            echo $result
+                        }
+
+                        function dependencyDefaultOverride() {
+                            override="$1"
+                            value="$2"
+                            if [[ ! -z "$override" ]]; then
+                                value=$override
+                            fi
+                            echo $value
+                        }
+
+                        # Force disable cloud compliance on feature branches
+                        cloudComplianceEnabled=$(extractConfig "$CLOUD_COMPLIANCE_ENABLED" ".pipeline.cloudCompliance.enabled" true "true")
+                        branch='<+codebase.branch>'
+                        snapshotBuild=false
+                        if [[ ! -z "$SNAPSHOT_BUILD" ]]; then
+                            snapshotBuild=$(sanitizeBoolean "$SNAPSHOT_BUILD")
+                            [[ "${snapshotBuild}" != "true" ]] && cloudComplianceEnabled=true || cloudComplianceEnabled=false
+                        else
+                            if [[ "${branch}" != "develop" && "${branch}" != "master" && "${branch}" != "main" && "${branch}" != "release" && ! "${branch}" =~ ^hotfix ]]; then
+                                cloudComplianceEnabled=false
+                                snapshotBuild=true
+                            fi
+                        fi
+
+                        # Get platform based on kernelversion of node
+                        kernelVersion=$(cat /proc/version)
+                        if grep -q azure <<<"$kernelVersion"; then
+                            platform='aks'
+                        elif grep -q amzn <<<"$kernelVersion"; then
+                            platform='eks'
+                        else
+                            echo -e "${RED}Cannot determine platform${NC}"
+                            exit 1
+                        fi
+
+                        # Deputy
+                        deputyCliVersion=$(extractConfig "$DEPUTY_CLI_VERSION" ".pipeline.cloudCompliance.deputyCliVersion" true "0.12.0")
+                        deputyClientSecretId=$(extractConfig "$DEPUTY_CLIENT_SECRET_ID" ".pipeline.cloudCompliance.deputyClientSecretId" true "deputydafclientsecret${platform}nonprod")
+                        deputyClientId=$(extractConfig "$DEPUTY_CLIENT_ID" ".pipeline.cloudCompliance.deputyClientId" true "deputydafclientid${platform}nonprod")
+                        deputyAppId=$(extractConfig "$DEPUTY_APP_ID" ".pipeline.cloudCompliance.deputyAppId" true)
+                        deputyEnv=$(extractConfig "$DEPUTY_ENV" ".pipeline.cloudCompliance.deputyEnv")
+
+                        # Artifactory credentials
+                        artifactoryUsernameSecretId=$(extractConfig "$ARTIFACTORY_USERNAME_SECRET_ID" ".pipeline.artifactHandling.artifactoryUsernameSecretId" true "artifactoryusername${platform}nonprod")
+                        artifactoryPasswordSecretId=$(extractConfig "$ARTIFACTORY_PASSWORD_SECRET_ID" ".pipeline.artifactHandling.artifactoryPasswordSecretId" true "artifactorysecret${platform}nonprod")
+                        appName=$(extractConfig "$APP_NAME" ".application.appName" true)
+
+                        # Stage\step flags
+                        buildImageEnabled=$(extractConfig "$BUILD_IMAGE_ENABLED" ".pipeline.artifactHandling.buildImage.buildImageEnabled")
+                        containerImageBuildMemory=$(extractConfig "$CONTAINER_IMAGE_BUILD_MEMORY" ".pipeline.artifactHandling.buildImage.containerImageBuildMemory" true "6Gi")
+                        containerImageBuildCpu=$(extractConfig "$CONTAINER_IMAGE_BUILD_CPU" ".pipeline.artifactHandling.buildImage.containerImageBuildCpu" true "2")
+                        unitTestMemory=$(extractConfig "$UNIT_TEST_MEMORY" ".pipeline.codeBuildTest.unitTestMemory" true "8Gi")
+                        unitTestCpu=$(extractConfig "$UNIT_TEST_CPU" ".pipeline.codeBuildTest.unitTestCpu" true "3")
+
+                        # NABx Build Environment
+                        nabxBuildEnvVersion=$(extractConfig "$NABX_BUILD_ENV_VERSION" ".pipeline.nabx.buildEnvVersion" true "13.5.10")
+                        nabxNsEnvVersion=$(extractConfig "$NABX_NET_STORAGE_ENV_VERSION" ".pipeline.nabx.nsEnvVersion" true "13.3.1")
+                        nabxChangeId=$(extractConfig "$NABX_CHANGE_ID" ".pipeline.nabx.publish.changeId")
+                        nabxNsArtifactLocation=$(extractConfig "$NABX_NET_STORAGE_ARTIFACT_LOCATION" ".pipeline.nabx.publish.netStorageArtifactLocation")
+                        nabxNsDestinationFolder=$(extractConfig "$NABX_NET_STORAGE_DESTINATION_FOLDER" ".pipeline.nabx.publish.netStorageDestinationFolder")
+                        nabxSkipPreflightCheck=$(extractConfig "$NABX_BUILD_SKIP_PREFLIGHT_CHECK" ".pipeline.nabx.build.skipPreflightCheck" true "true")
+                        nabxNodeEnv=$(extractConfig "$NABX_BUILD_NODE_ENV" ".pipeline.nabx.build.nodeEnv" true "production")
+
+                        # Code quality scans (Sonarqube)
+                        sonarqubeEnabled=$(extractConfig "$SONARQUBE_ENABLED" ".pipeline.codeBuildTest.sonarqube.enabled" true "true")
+                        sonarScannerVersion=$(extractConfig "$SONARSCANNER_VERSION" ".pipeline.codeBuildTest.sonarqube.sonarScannerVersion" true "4.7.0.2747")
+                        sonarHost=$(extractConfig "$SONAR_HOST" ".pipeline.codeBuildTest.sonarqube.sonarHost" true "https://sonarqube.aus.thenational.com/sonar")
+                        sonarqubeApiKey=$(extractConfig "$SONARQUBE_API_KEY" ".pipeline.codeBuildTest.sonarqube.sonarqubeToken")
+                        githubReleaseBranch=$(extractConfig "$GITHUB_RELEASE_BRANCH" ".pipeline.githubReleaseBranch" true "master")
+
+                        # Container scans (CSS/Prisma/Twistlock)
+                        cssProject=$(extractConfig "$CSS_PROJECT" ".pipeline.platformScans.css.project")
+                        cssPrismaUrl=$(extractConfig "$CSS_PRISMA_URL" ".pipeline.platformScans.css.prismaUrl" true "harness-prisma.lz062.awsnp.national.com.au")
+                        cssUsernameSecretId=$(extractConfig "$CSS_USERNAME" ".pipeline.platformScans.css.cssUsernameSecretId")
+                        cssPasswordSecretId=$(extractConfig "$CSS_PASSWORD" ".pipeline.platformScans.css.cssPasswordSecretId")
+                        cssNoBreak=$(extractConfig "$CSS_NO_BREAK" ".pipeline.platformScans.css.cssNoBreak" true "true")
+                        cssEnabled=$(extractConfig "$CSS_ENABLED" ".pipeline.platformScans.css.enabled" true "true")
+
+                        # Software component analysis scans (library vulnerabilities / NexusIQ)
+                        scaApplicationId=$(extractConfig "$SCA_APP_ID" ".pipeline.platformScans.sca.applicationId")
+                        scaUrl=$(extractConfig "$SCA_URL" ".pipeline.platformScans.sca.scaUrl" true "https://sca.lz084.ext.national.com.au/")
+                        scaUsernameSecretId=$(extractConfig "$SCA_USERNAME" ".pipeline.platformScans.sca.scaUsernameSecretId")
+                        scaPasswordSecretId=$(extractConfig "$SCA_PASSWORD" ".pipeline.platformScans.sca.scaPasswordSecretId")
+                        scaEnabled=$(extractConfig "$SCA_ENABLED" ".pipeline.platformScans.sca.enabled" true "true")
+                        scaNoBreak=$(extractConfig "$SCA_NO_BREAK" ".pipeline.platformScans.sca.scaNoBreak" true "true")
+                        scaThreatLevelThreshold=$(extractConfig "$SCA_ALERT_THRESHOLD" ".pipeline.platformScans.sca.scaThreatLevelThreshold" true "9")
+
+                        # Platform scans
+                        platformScanMemory=$(extractConfig "$PLATFORM_SCAN_MEMORY" ".pipeline.platformScans.platformScanMemory" true "8Gi")
+                        platformScanCpu=$(extractConfig "$PLATFORM_SCAN_CPU" ".pipeline.platformScans.platformScanCpu" true "4")
+
+                        # NPM release flags
+                        nabxNpmPreReleaseTag=$(extractConfig "$NABX_NPM_PRE_RELEASE_TAG" ".pipeline.nabx.publish.npmPreReleaseTag" true "alpha")
+                        nabxNpmUsernameId=$(extractConfig "$NABX_NPM_USERNAME_ID" ".pipeline.nabx.publish.npmArtifactoryUsernameId" true "NABX_ARTIFACTORY_USERNAME_${platform}_NONPROD")
+                        nabxNpmPasswordId=$(extractConfig "$NABX_NPM_PASSWORD_ID" ".pipeline.nabx.publish.npmArtifactoryPasswordId" true "NABX_ARTIFACTORY_PASSWORD_${platform}_PROD")
+                        nabxNsApiKeyId=$(extractConfig "$NABX_NET_STORAGE_API_KEY_ID" ".pipeline.nabx.publish.netStorageApiKeyId" true "nabxakamainetstorageapikey")
+                        apiPackageName=$(extractConfig "$API_PACKAGE_NAME" ".pipeline.api.apiPackageName")
+                        swagstarCliVersion=$(extractConfig "$SWAGSTAR_CLI_VERSION" ".pipeline.api.swagstarCliVersion" true "1.0.0")
+                        apiHost=$(extractConfig "$API_HOST" ".pipeline.api.apiHost")
+                        azureEnvironment=$(extractConfig "$AZURE_ENVIRONMENT" ".application.azureEnvironment")
+                        extraSwagstarValidateArgs=$(extractConfig "$EXTRA_SWAGSTAR_VALIDATE_ARGS" ".pipeline.api.extraSwagstarValidateArgs")
+                        apiEnvAliasAzure=$(extractConfig "$API_ENV_ALIAS_AZURE" ".pipeline.api.apiEnvAliasAzure")
+                        appBuildBaseContainerImage=$(extractConfig "$APP_BUILD_BASE_CONTAINER_IMAGE" ".pipeline.artifactHandling.buildImage.appBuildBaseContainerImage")
+                        apiEnabled=$(extractConfig "$API_ENABLED" ".pipeline.api.apiEnabled" true "true")
+                        azureRegion=$(extractConfig "$AZURE_REGION" ".application.azureRegion" true "australiasoutheast")
+
+                        # Misc
+                        nabxGithubToken=$(extractConfig "$NABX_GITHUB_TOKEN" ".pipeline.nabx.publish.githubToken" true "githubaccesstokeneksnonprod")
+                        nabxNsUploadAccount=$(extractConfig "$NABX_NET_STORAGE_UPLOAD_ACCOUNT" ".pipeline.nabx.publish.netStorageUploadAccount" true "nxn_upload_acct")
+                        nabxNsCpCode=$(extractConfig "$NABX_NET_STORAGE_CP_CODE" ".pipeline.nabx.publish.netStorageCpCode")
+                        nabxNsHost=$(extractConfig "$NABX_NET_STORAGE_HOST" ".pipeline.nabx.publish.netStorageHost")
+                      envVariables:
+                        CLOUD_COMPLIANCE_ENABLED: <+input>
+                        DEPUTY_CLI_VERSION: <+input>
+                        DEPUTY_CLIENT_SECRET_ID: <+input>
+                        DEPUTY_CLIENT_ID: <+input>
+                        DEPUTY_APP_ID: <+input>
+                        DEPUTY_ENV: <+input>
+                        SNAPSHOT_BUILD: <+input>
+                        ARTIFACTORY_USERNAME_SECRET_ID: <+input>
+                        ARTIFACTORY_PASSWORD_SECRET_ID: <+input>
+                        APP_NAME: <+input>
+                        CONTAINER_IMAGE_BUILD_MEMORY: <+input>
+                        CONTAINER_IMAGE_BUILD_CPU: <+input>
+                        UNIT_TEST_MEMORY: <+input>
+                        UNIT_TEST_CPU: <+input>
+                        NABX_BUILD_ENV_VERSION: <+input>
+                        NABX_CHANGE_ID: <+input>
+                        NABX_NET_STORAGE_ARTIFACT_LOCATION: <+input>
+                        NABX_NET_STORAGE_DESTINATION_FOLDER: <+input>
+                        NABX_BUILD_SKIP_PREFLIGHT_CHECK: <+input>
+                        NABX_BUILD_NODE_ENV: <+input>
+                        SONARQUBE_API_KEY: <+input>
+                        SONARQUBE_ENABLED: <+input>
+                        SONARSCANNER_VERSION: <+input>
+                        SONAR_HOST: <+input>
+                        GITHUB_RELEASE_BRANCH: <+input>
+                        BUILD_IMAGE_ENABLED: <+input>
+                        CSS_PROJECT: <+input>
+                        CSS_PRISMA_URL: <+input>
+                        CSS_USERNAME: <+input>
+                        CSS_PASSWORD: <+input>
+                        CSS_NO_BREAK: <+input>
+                        PLATFORM_SCAN_MEMORY: <+input>
+                        PLATFORM_SCAN_CPU: <+input>
+                        CSS_ENABLED: <+input>
+                        NABX_NPM_USERNAME_ID: <+input>
+                        NABX_NPM_PASSWORD_ID: <+input>
+                        NABX_NPM_PRE_RELEASE_TAG: <+input>
+                        NABX_NET_STORAGE_ENV_VERSION: <+input>
+                        NABX_NET_STORAGE_API_KEY_ID: <+input>
+                        NABX_GITHUB_TOKEN: <+input>
+                        NABX_NET_STORAGE_UPLOAD_ACCOUNT: <+input>
+                        NABX_NET_STORAGE_CP_CODE: <+input>
+                        NABX_NET_STORAGE_HOST: <+input>
+                        SCA_APP_ID: <+input>
+                        SCA_URL: <+input>
+                        SCA_USERNAME: <+input>
+                        SCA_PASSWORD: <+input>
+                        SCA_ENABLED: <+input>
+                        SCA_NO_BREAK: <+input>
+                        SCA_ALERT_THRESHOLD: <+input>
+                        API_PACKAGE_NAME: <+input>
+                        SWAGSTAR_CLI_VERSION: <+input>
+                        API_HOST: <+input>
+                        AZURE_ENVIRONMENT: <+input>
+                        AZURE_REGION: <+input>
+                        EXTRA_SWAGSTAR_VALIDATE_ARGS: <+input>
+                        API_ENV_ALIAS_AZURE: <+input>
+                        APP_BUILD_BASE_CONTAINER_IMAGE: <+input>
+                        API_ENABLED: <+input>
+                      outputVariables:
+                        - name: cloudComplianceEnabled
+                        - name: deputyCliVersion
+                        - name: deputyClientSecretId
+                        - name: deputyClientId
+                        - name: deputyAppId
+                        - name: deputyEnv
+                        - name: snapshotBuild
+                        - name: artifactoryUsernameSecretId
+                        - name: artifactoryPasswordSecretId
+                        - name: appName
+                        - name: containerImageBuildMemory
+                        - name: containerImageBuildCpu
+                        - name: unitTestMemory
+                        - name: unitTestCpu
+                        - name: nabxBuildEnvVersion
+                        - name: nabxChangeId
+                        - name: nabxNsArtifactLocation
+                        - name: nabxNsDestinationFolder
+                        - name: nabxSkipPreflightCheck
+                        - name: nabxNodeEnv
+                        - name: sonarqubeEnabled
+                        - name: sonarScannerVersion
+                        - name: sonarHost
+                        - name: sonarqubeApiKey
+                        - name: githubReleaseBranch
+                        - name: buildImageEnabled
+                        - name: cssProject
+                        - name: cssPrismaUrl
+                        - name: cssUsernameSecretId
+                        - name: cssPasswordSecretId
+                        - name: cssNoBreak
+                        - name: platformScanMemory
+                        - name: platformScanCpu
+                        - name: cssEnabled
+                        - name: nabxNpmPreReleaseTag
+                        - name: nabxNpmUsernameId
+                        - name: nabxNpmPasswordId
+                        - name: nabxNsEnvVersion
+                        - name: nabxNsApiKeyId
+                        - name: nabxGithubToken
+                        - name: nabxNsHost
+                        - name: nabxNsCpCode
+                        - name: nabxNsUploadAccount
+                        - name: scaApplicationId
+                        - name: scaUrl
+                        - name: scaUsernameSecretId
+                        - name: scaPasswordSecretId
+                        - name: scaEnabled
+                        - name: scaNoBreak
+                        - name: scaThreatLevelThreshold
+                        - name: apiPackageName
+                        - name: swagstarCliVersion
+                        - name: apiHost
+                        - name: azureEnvironment
+                        - name: azureRegion
+                        - name: extraSwagstarValidateArgs
+                        - name: apiEnvAliasAzure
+                        - name: appBuildBaseContainerImage
+                        - name: apiEnabled
+                    failureStrategies: []
+      - stage:
+          name: Start Build
+          identifier: Start_Build
+          type: CI
+          spec:
+            cloneCodebase: false
+            infrastructure:
+              useFromStage: Initialise
+            execution:
+              steps:
+                - step:
+                    name: Send Deputy Build Started
+                    identifier: Send_Deputy_Build_Started
+                    template:
+                      templateRef: account.Step_Template_Deputy_Create_Build
+                      versionLabel: V1.0.0
+                      templateInputs:
+                        type: Run
+                        spec:
+                          connectorRef: <+pipeline.variables.ArtifactoryCdRepositoryConnectorId>
+                          image: deputy-cli:<+pipeline.stages.Initialise.spec.execution.steps.Deduce_Configuration.output.outputVariables.deputyCliVersion>
+                          envVariables:
+                            DEPUTY_CLIENT_ID: <+pipeline.stages.Initialise.spec.execution.steps.Deduce_Configuration.output.outputVariables.deputyClientId>
+                            DEPUTY_CLIENT_SECRET: <+secrets.getValue(<+pipeline.stages.Initialise.spec.execution.steps.Deduce_Configuration.output.outputVariables.deputyClientSecretId>)>
+                            DEPUTY_APPLICATION_ID: <+pipeline.stages.Initialise.spec.execution.steps.Deduce_Configuration.output.outputVariables.deputyAppId>
+                            COMMIT_SHA: <+codebase.commitSha>
+                            DEPUTY_ENVIRONMENT: <+pipeline.stages.Initialise.spec.execution.steps.Deduce_Configuration.output.outputVariables.deputyEnv>
+          description: Send Deputy the Start Build signal. Outputs a BUILD ID to be used throughout the pipeline.
+          when:
+            pipelineStatus: Success
+            condition: <+pipeline.stages.Initialise.spec.execution.steps.Deduce_Configuration.output.outputVariables.cloudComplianceEnabled>
+      - stage:
+          name: Source Code Build and Test
+          identifier: Source_Code_Build_and_Test
+          type: CI
+          spec:
+            cloneCodebase: true
+            infrastructure:
+              useFromStage: Initialise
+            execution:
+              steps:
+                - step:
+                    type: Run
+                    name: Install Packages
+                    identifier: Install_Packages
+                    spec:
+                      connectorRef: <+pipeline.variables.NabxPipelineToolsConnectorId>
+                      image: nabxdocker-build.artifactory.ext.national.com.au/nab/nab-x-build-env:<+pipeline.stages.Initialise.spec.execution.steps.Deduce_Configuration.output.outputVariables.nabxBuildEnvVersion>
+                      shell: Bash
+                      command: |-
+                        yarn --version
+                        echo "Inside nabx build env"
+                        yarn install --no-progress --frozen-lockfile --network-timeout 1000000000
+                        export CYPRESS_INSTALL_BINARY
+                      envVariables:
+                        CYPRESS_INSTALL_BINARY: "0"
+                      resources:
+                        limits:
+                          memory: <+pipeline.stages.Initialise.spec.execution.steps.Deduce_Configuration.output.outputVariables.unitTestMemory>
+                          cpu: <+pipeline.stages.Initialise.spec.execution.steps.Deduce_Configuration.output.outputVariables.unitTestCpu>
+                    when:
+                      stageStatus: Success
+                    failureStrategies: []
+                - step:
+                    type: Run
+                    name: Build
+                    identifier: Build
+                    spec:
+                      connectorRef: <+pipeline.variables.NabxPipelineToolsConnectorId>
+                      image: nabxdocker-build.artifactory.ext.national.com.au/nab/nab-x-build-env:<+pipeline.stages.Initialise.spec.execution.steps.Deduce_Configuration.output.outputVariables.nabxBuildEnvVersion>
+                      shell: Bash
+                      command: |-
+                        echo "Inside nabx build env"
+                        yarn build
+
+                        pushApplicationPackage=false
+                        if [ "$(ls -A app/frontend/build/)" ]; then
+                            src="app/frontend/build"
+                        fi
+                        if [ "$(ls -A app/server/build/)" ]; then
+                            src+=" app/server/build"
+                        fi
+
+                        if [ ! -z "$src" ]; then
+                            mkdir -p buildArtifacts
+                            tar czvf "buildArtifacts/libs-<+pipeline.sequenceId>.tar.gz" ${src}
+                            pushApplicationPackage=true
+                        else
+                            echo "app/frontend/build and app/server/build folders are empty. Skipped zipping of artifacts..."
+                        fi
+
+                        export pushApplicationPackage
+                      envVariables:
+                        SKIP_PREFLIGHT_CHECK: <+pipeline.stages.Initialise.spec.execution.steps.Deduce_Configuration.output.outputVariables.nabxSkipPreflightCheck>
+                        NODE_ENV: <+pipeline.stages.Initialise.spec.execution.steps.Deduce_Configuration.output.outputVariables.nabxNodeEnv>
+                      outputVariables:
+                        - name: pushApplicationPackage
+                      resources:
+                        limits:
+                          memory: <+pipeline.stages.Initialise.spec.execution.steps.Deduce_Configuration.output.outputVariables.unitTestMemory>
+                          cpu: <+pipeline.stages.Initialise.spec.execution.steps.Deduce_Configuration.output.outputVariables.unitTestCpu>
+                    when:
+                      stageStatus: Success
+                    failureStrategies: []
+                - step:
+                    type: Run
+                    name: Unit Tests
+                    identifier: Unit_Tests
+                    spec:
+                      connectorRef: <+pipeline.variables.NabxPipelineToolsConnectorId>
+                      image: nabxdocker-build.artifactory.ext.national.com.au/nab/nab-x-build-env:<+pipeline.stages.Initialise.spec.execution.steps.Deduce_Configuration.output.outputVariables.nabxBuildEnvVersion>
+                      shell: Bash
+                      command: |-
+                        echo "Run Unit Tests..."
+                        yarn test
+
+                        if [ "$(ls -A app/frontend/coverage/)" ] && [ "$(ls -A app/server/coverage/)" ]; then
+                            mkdir -p testArtifacts
+                            cp -r app/frontend/coverage testArtifacts/frontendTest
+                            cp -r app/server/coverage testArtifacts/serverTest
+                        else
+                            echo "app/frontend/coverage or app/server/coverage folder is empty. Skipped copying of artifacts..."
+                        fi
+                      resources:
+                        limits:
+                          memory: <+pipeline.stages.Initialise.spec.execution.steps.Deduce_Configuration.output.outputVariables.unitTestMemory>
+                          cpu: <+pipeline.stages.Initialise.spec.execution.steps.Deduce_Configuration.output.outputVariables.unitTestCpu>
+                    when:
+                      stageStatus: Success
+                    failureStrategies: []
+                - step:
+                    name: SonarQube
+                    identifier: SonarQube
+                    template:
+                      templateRef: account.Step_Template_SonarQube_Scans
+                      versionLabel: V1.0.2
+                      templateInputs:
+                        type: Run
+                        spec:
+                          connectorRef: <+pipeline.variables.ArtifactoryCdRepositoryConnectorId>
+                          image: sonarqubescanner:<+pipeline.stages.Initialise.spec.execution.steps.Deduce_Configuration.output.outputVariables.sonarScannerVersion>
+                          envVariables:
+                            BUILD_TYPE: <+pipeline.properties.ci.codebase.build.type>
+                            BUILD_ID: <+pipeline.sequenceId>
+                            PR_NUM: <+codebase.prNumber>
+                            CODE_REPO: <+pipeline.properties.ci.codebase.repoName>
+                            TARGET_BRANCH: <+codebase.targetBranch>
+                            COMMIT_SHA: <+codebase.commitSha>
+                            RELEASE_BRANCH: <+pipeline.stages.Initialise.spec.execution.steps.Deduce_Configuration.output.outputVariables.githubReleaseBranch>
+                            SONAR_HOST: <+pipeline.stages.Initialise.spec.execution.steps.Deduce_Configuration.output.outputVariables.sonarHost>
+                            SOURCE_BRANCH: <+codebase.sourceBranch>
+                            WORKING_BRANCH: <+codebase.branch>
+                            SONARQUBE_TOKEN: <+secrets.getValue(<+pipeline.stages.Initialise.spec.execution.steps.Deduce_Configuration.output.outputVariables.sonarqubeApiKey>)>
+                        when:
+                          condition: <+pipeline.stages.Initialise.spec.execution.steps.Deduce_Configuration.output.outputVariables.sonarqubeEnabled>
+                - step:
+                    name: Send Deputy SonarQube Event
+                    identifier: Send_Deputy_SonarQube_Event
+                    template:
+                      templateRef: account.Step_Template_Deputy_Send_Event
+                      versionLabel: V1.0.0
+                      templateInputs:
+                        type: Run
+                        spec:
+                          connectorRef: <+pipeline.variables.ArtifactoryCdRepositoryConnectorId>
+                          image: deputy-cli:<+pipeline.stages.Initialise.spec.execution.steps.Deduce_Configuration.output.outputVariables.deputyCliVersion>
+                          envVariables:
+                            DEPUTY_CLIENT_ID: <+pipeline.stages.Initialise.spec.execution.steps.Deduce_Configuration.output.outputVariables.deputyClientId>
+                            DEPUTY_CLIENT_SECRET: <+secrets.getValue(<+pipeline.stages.Initialise.spec.execution.steps.Deduce_Configuration.output.outputVariables.deputyClientSecretId>)>
+                            DEPUTY_BUILD_ID: <+pipeline.stages.Start_Build.spec.execution.steps.Send_Deputy_Build_Started.output.outputVariables.DEPUTY_BUILD_ID>
+                            DEPUTY_ACCESS_TOKEN: <+pipeline.stages.Start_Build.spec.execution.steps.Send_Deputy_Build_Started.output.outputVariables.DEPUTY_ACCESS_TOKEN>
+                            DEPUTY_ENVIRONMENT: <+pipeline.stages.Initialise.spec.execution.steps.Deduce_Configuration.output.outputVariables.deputyEnv>
+                            DEPUTY_EVENT: sonarq-scan-completed
+                            DEPUTY_ARGS: "--event-metadata taskId <+pipeline.stages.Source_Code_Build_and_Test.spec.execution.steps.SonarQube.output.outputVariables.taskId>"
+                        when:
+                          condition: "(<+pipeline.stages.Source_Code_Build_and_Test.spec.execution.steps.SonarQube.output.outputVariables.sendDeputySonarqubeEvent> ? <+pipeline.stages.Source_Code_Build_and_Test.spec.execution.steps.SonarQube.output.outputVariables.sendDeputySonarqubeEvent> : false) && <+pipeline.stages.Initialise.spec.execution.steps.Deduce_Configuration.output.outputVariables.cloudComplianceEnabled>"
+                - parallel:
+                    - step:
+                        type: Run
+                        name: Prepare Files for Net Storage
+                        identifier: Prepare_Files_for_Net_Storage
+                        spec:
+                          connectorRef: <+pipeline.variables.ArtifactoryMsbaseRepositoryConnectorId>
+                          image: java-redhat-git:develop
+                          shell: Bash
+                          command: |
+                            zip -r "/harness/app/native/build/dev/ios/nxn-ios-6.3.2.zip" app/native/build/dev/ios
+                            ls -ltr /harness/app/native/build/dev/ios/
+                    - step:
+                        type: Run
+                        name: Package Test Artifacts
+                        identifier: Package_Test_Artifacts
+                        spec:
+                          connectorRef: <+pipeline.variables.ArtifactoryMsbaseRepositoryConnectorId>
+                          image: java-redhat-git:develop
+                          shell: Bash
+                          command: |
+                            uploadTestArtifacts=false
+                            if [ "$(ls -A testArtifacts/)" ]; then
+                                mkdir -p buildArtifacts
+                                cd testArtifacts
+                                zip -r "../buildArtifacts/test-artifacts-<+pipeline.sequenceId>.zip" *
+                                uploadTestArtifacts=true
+                            else
+                                echo "testArtifacts folder is empty. Skipped zipping of artifacts..."
+                            fi
+                            export uploadTestArtifacts
+                          outputVariables:
+                            - name: uploadTestArtifacts
+                        when:
+                          stageStatus: All
+                        failureStrategies: []
+                - parallel:
+                    - step:
+                        type: Run
+                        name: Publish to Net Storage
+                        identifier: Publish_to_Net_Storage
+                        spec:
+                          connectorRef: <+pipeline.variables.NabxPipelineToolsConnectorId>
+                          image: nabxdocker-build.artifactory.ext.national.com.au/nab/nab-x-netstorage-env:<+pipeline.stages.Initialise.spec.execution.steps.Deduce_Configuration.output.outputVariables.nabxNsEnvVersion>
+                          shell: Sh
+                          command: |-
+                            echo "Publish to Net Storage"
+                            ns-upload
+                          envVariables:
+                            NS_ARTIFACT_LOCATION: <+pipeline.stages.Initialise.spec.execution.steps.Deduce_Configuration.output.outputVariables.nabxNsArtifactLocation>
+                            NS_DESTINATION_FOLDER: <+pipeline.stages.Initialise.spec.execution.steps.Deduce_Configuration.output.outputVariables.nabxNsDestinationFolder>
+                            NS_UPLOAD_ACCOUNT: <+pipeline.stages.Initialise.spec.execution.steps.Deduce_Configuration.output.outputVariables.nabxNsUploadAccount>
+                            NS_CP_CODE: <+pipeline.stages.Initialise.spec.execution.steps.Deduce_Configuration.output.outputVariables.nabxNsCpCode>
+                            NS_HOST: <+pipeline.stages.Initialise.spec.execution.steps.Deduce_Configuration.output.outputVariables.nabxNsHost>
+                            NS_API_KEY: <+secrets.getValue(<+pipeline.stages.Initialise.spec.execution.steps.Deduce_Configuration.output.outputVariables.nabxNsApiKeyId>)>
+                    - step:
+                        type: Run
+                        name: Npm Publish
+                        identifier: Npm_Publish
+                        spec:
+                          connectorRef: <+pipeline.variables.NabxPipelineToolsConnectorId>
+                          image: nabxdocker-build.artifactory.ext.national.com.au/nab/nab-x-build-env:<+pipeline.stages.Initialise.spec.execution.steps.Deduce_Configuration.output.outputVariables.nabxBuildEnvVersion>
+                          shell: Bash
+                          command: yarn workspace @nab/nab-x-miniapp-example-native prerelease-lib:"${PRE_RELEASE_TAG}"
+                          envVariables:
+                            BUILD_ID: <+pipeline.sequenceId>
+                            CHANGE_ID: <+pipeline.stages.Initialise.spec.execution.steps.Deduce_Configuration.output.outputVariables.nabxChangeId>
+                            NPM_REGISTRY: https://artifactory.ext.national.com.au/artifactory/api/npm/NPM-SHARED-build/
+                            NPM_USERNAME: <+secrets.getValue(<+pipeline.stages.Initialise.spec.execution.steps.Deduce_Configuration.output.outputVariables.nabxNpmUsernameId>)>
+                            NPM_PASSWORD: <+secrets.getValue(<+pipeline.stages.Initialise.spec.execution.steps.Deduce_Configuration.output.outputVariables.nabxNpmPasswordId>)>
+                            NPM_EMAIL: <+pipeline.variables.NabxNpmEmail>
+                            GITHUB_TOKEN: <+secrets.getValue(<+pipeline.stages.Initialise.spec.execution.steps.Deduce_Configuration.output.outputVariables.nabxGithubToken>)>
+                            PRE_RELEASE_TAG: <+pipeline.stages.Initialise.spec.execution.steps.Deduce_Configuration.output.outputVariables.nabxNpmPreReleaseTag>
+                        failureStrategies: []
+                - parallel:
+                    - step:
+                        type: ArtifactoryUpload
+                        name: Push Application Package to Artifactory
+                        identifier: Push_Application_Package_to_Artifactory
+                        spec:
+                          connectorRef: <+pipeline.variables.ArtifactoryConnectorId>
+                          target: <+variable.ARTIFACT_BUILD_REPO>/<+pipeline.stages.Initialise.spec.execution.steps.Deduce_Configuration.output.outputVariables.appName>/<+codebase.commitSha>/libs-<+pipeline.sequenceId>.tar.gz
+                          sourcePath: buildArtifacts/libs-<+pipeline.sequenceId>.tar.gz
+                        when:
+                          stageStatus: All
+                          condition: "<+execution.steps.Build.output.outputVariables.pushApplicationPackage> ? <+execution.steps.Build.output.outputVariables.pushApplicationPackage> : false"
+                        failureStrategies: []
+                    - step:
+                        type: ArtifactoryUpload
+                        name: Upload Test Artifacts
+                        identifier: Upload_Test_Artifacts
+                        spec:
+                          connectorRef: <+pipeline.variables.ArtifactoryConnectorId>
+                          target: <+variable.ARTIFACT_BUILD_REPO>/<+pipeline.stages.Initialise.spec.execution.steps.Deduce_Configuration.output.outputVariables.appName>/<+codebase.commitSha>/test-artifacts-<+pipeline.sequenceId>.zip
+                          sourcePath: buildArtifacts/test-artifacts-<+pipeline.sequenceId>.zip
+                        when:
+                          stageStatus: All
+                          condition: "<+execution.steps.Package_Test_Artifacts.output.outputVariables.uploadTestArtifacts> ? <+execution.steps.Package_Test_Artifacts.output.outputVariables.uploadTestArtifacts> : false"
+                        failureStrategies: []
+            sharedPaths:
+              - /.jfrog
+          when:
+            pipelineStatus: Success
+      - stage:
+          name: Containerise
+          identifier: Containerise
+          type: CI
+          spec:
+            cloneCodebase: true
+            infrastructure:
+              type: KubernetesDirect
+              spec:
+                connectorRef: <+pipeline.variables.k8sConnectorId>
+                namespace: <+pipeline.variables.k8sNamespace>
+                labels:
+                  AppCategory: <+pipeline.variables.appCategory>
+                  ApplicationID: <+pipeline.variables.appId>
+                  CostCentre: <+pipeline.variables.costCentre>
+                  Environment: <+pipeline.variables.environment>
+                  Owner: <+pipeline.variables.owner>
+                  SupportGroup: <+pipeline.variables.supportGroup>
+                  managed-eks/component: <+pipeline.variables.managedComponent>
+                automountServiceAccountToken: false
+                tolerations:
+                  - effect: NoSchedule
+                    key: managed-eks/ci-dedicated
+                    operator: Equal
+                    value: "true"
+                nodeSelector:
+                  managed-eks/ci-dedicated: "true"
+                containerSecurityContext:
+                  runAsNonRoot: false
+                  runAsUser: "1000"
+                os: Linux
+            execution:
+              steps:
+                - step:
+                    type: Run
+                    name: Initialise
+                    identifier: Initialise
+                    spec:
+                      connectorRef: <+pipeline.variables.NabxPipelineToolsConnectorId>
+                      image: nabxdocker-build.artifactory.ext.national.com.au/nab/nab-x-build-env:<+pipeline.stages.Initialise.spec.execution.steps.Deduce_Configuration.output.outputVariables.nabxBuildEnvVersion>
+                      shell: Bash
+                      command: |+
+
+                        artifactoryBaseUrl="https://${ARTIFACTORY_HOST_NAME}:443/artifactory"
+                        artifactDockerBuildRepo=<+variable.ARTIFACTORY_DOCKER_BUILD_REPO>
+                        artifactBuildRepo=<+variable.ARTIFACT_BUILD_REPO>
+                        pushAppImage=false
+                        pushExpressImage=false
+
+                        # Download the build artifacts
+                        artifactoryFilePath="${artifactoryBaseUrl}/${artifactBuildRepo}/<+pipeline.stages.Initialise.spec.execution.steps.Deduce_Configuration.output.outputVariables.appName>/<+codebase.commitSha>/libs-<+pipeline.sequenceId>.tar.gz"
+                        # FIXME - to avoid long build times you can just pull a recent build by uncommenting the next line and updating the sequence number
+                        # artifactoryFilePath="${artifactoryBaseUrl}/${artifactBuildRepo}/<+pipeline.stages.Initialise.spec.execution.steps.Deduce_Configuration.output.outputVariables.appName>/<+codebase.commitSha>/libs-307.tar.gz"
+                        status_code=$(curl --write-out %{http_code} --silent --output 'libs-<+pipeline.sequenceId>.tar.gz' -u ${USERNAME}:${PASSWORD} ${artifactoryFilePath})
+                        echo "status_code =" $status_code
+                        # Check headers
+                        if [[ $status_code != 200 ]]; then
+                            echo "No build artifacts downloaded... not much we can do here"
+                            exit 1
+                        fi
+                        tar xzvf 'libs-<+pipeline.sequenceId>.tar.gz'
+
+                        # CHECK APP IMAGE EXISTENCE
+                        # Set variables
+                        tagPrefix="snapshot"
+                        if [[ "${SNAPSHOT_BUILD}" != "true" ]]; then
+                            tagPrefix="git"
+                        fi
+                        export imageTag="${tagPrefix}-<+codebase.commitSha>"
+                        index=0
+
+                        # We need to convert artifactDockerBuildRepo into hostname.domain/suffix format for it to be used by the docker build & push step
+                        imageRepoName=$(echo ${artifactDockerBuildRepo} | sed -e "s/^[a-zA-Z0-9_-]*/&.${ARTIFACTORY_HOST_NAME}/")
+
+                        ## CHECK NGINX IMAGE
+                        appImageName="${APP_NAME}-nginx"
+                        artifactoryFilePath="${artifactoryBaseUrl}/${artifactDockerBuildRepo}/${appImageName}/${imageTag}/manifest.json"
+
+                        # curl to get status_code
+                        status_code=$(curl --write-out %{http_code} --silent --output /dev/null -u ${USERNAME}:${PASSWORD} ${artifactoryFilePath})
+                        echo "status_code =" $status_code
+
+                        # Check headers
+                        if [[ $status_code == 200 ]]; then
+                            echo "Skipping app image, because it already exists at ${artifactoryFilePath}"
+                        elif [[ $status_code == 404 ]]; then
+                            echo "Artifact does not exist at ${artifactoryFilePath}"
+                            # Check if we have anything to build
+                            if [ "$(ls -A app/frontend/build/)" ]; then
+                                containerImages+="image$((index++)):${imageRepoName}/${appImageName}:${imageTag},"
+                                pushAppImage=true
+                            fi
+                        else
+                            echo "Something went wrong, please review the logs"
+                            exit 1
+                        fi
+
+                        ## CHECK EXPRESS IMAGE
+                        expressImageName="${APP_NAME}"
+                        artifactoryFilePath="${artifactoryBaseUrl}/${artifactDockerBuildRepo}/${expressImageName}/${imageTag}/manifest.json"
+
+                        # curl to get status_code
+                        status_code=$(curl --write-out %{http_code} --silent --output /dev/null -u ${USERNAME}:${PASSWORD} ${artifactoryFilePath})
+                        echo "status_code =" $status_code
+
+                        # Check headers
+                        if [[ $status_code == 200 ]]; then
+                            echo "Skipping Express image, because it already exists at ${artifactoryFilePath}"
+                        elif [[ $status_code == 404 ]]; then
+                            echo "Artifact does not exist at ${artifactoryFilePath}"
+                            # Check if we have anything to build
+                            if [ "$(ls -A app/server/build/)" ]; then
+                                containerImages+="image$((index++)):${imageRepoName}/${expressImageName}:${imageTag},"
+                                pushExpressImage=true
+                            fi
+                        else
+                            echo "Something went wrong, please review the logs"
+                            exit 1
+                        fi
+
+                        #strip any trailing comma
+                        containerImages=${containerImages%,}
+
+                        echo "${imageRepoName}"
+                        echo "${appImageName}"
+                        echo "${pushAppImage}"
+                        echo "${expressImageName}"
+                        echo "${pushExpressImage}"
+                        echo "${imageTag}"
+                        echo "${containerImages}"
+
+
+                      envVariables:
+                        USERNAME: <+secrets.getValue(<+pipeline.stages.Initialise.spec.execution.steps.Deduce_Configuration.output.outputVariables.artifactoryUsernameSecretId>)>
+                        PASSWORD: <+secrets.getValue(<+pipeline.stages.Initialise.spec.execution.steps.Deduce_Configuration.output.outputVariables.artifactoryPasswordSecretId>)>
+                        SNAPSHOT_BUILD: <+pipeline.stages.Initialise.spec.execution.steps.Deduce_Configuration.output.outputVariables.snapshotBuild>
+                        APP_NAME: <+pipeline.stages.Initialise.spec.execution.steps.Deduce_Configuration.output.outputVariables.appName>
+                        ARTIFACTORY_HOST_NAME: artifactory.ext.national.com.au
+                      outputVariables:
+                        - name: imageRepoName
+                        - name: appImageName
+                        - name: pushAppImage
+                        - name: expressImageName
+                        - name: pushExpressImage
+                        - name: imageTag
+                        - name: containerImages
+                    failureStrategies: []
+                - step:
+                    type: Run
+                    name: Generate Tarballs
+                    identifier: Generate_Tarballs
+                    spec:
+                      connectorRef: <+pipeline.variables.ArtifactoryCdRepositoryConnectorId>
+                      image: /harness-dependencies/harness/kaniko-executor:v1.9.1-debug
+                      shell: Sh
+                      command: |-
+
+                        #Params for App Container
+                        imageType="App Container"
+                        dockerFile=app/frontend/Dockerfile
+                        imageDestination="<+steps.Initialise.output.outputVariables.imageRepoName>/<+steps.Initialise.output.outputVariables.appImageName>:<+steps.Initialise.output.outputVariables.imageTag>"
+                        tarPath=<+steps.Initialise.output.outputVariables.appImageName>.tar
+                        appContainerName=<+steps.Initialise.output.outputVariables.appImageName>
+
+                        #Generate Tarball for App container
+                        if test -f "$dockerFile"; then
+                            echo "Generating Tarball for $imageName"
+                            /kaniko/executor --dockerfile $dockerFile \
+                            --context dir://app/frontend \
+                            --destination $imageDestination \
+                            --no-push \
+                            --tarPath $tarPath
+                            echo "Tarball Generated for $imageDestination"
+                            appContainerPath=$tarPath
+                        else
+                            echo "No docker file exits for $imageType"
+                        fi
+
+
+                        #Params for Express Container
+                        imageType="Express Container"
+                        dockerFile=app/server/Dockerfile
+                        imageDestination="<+steps.Initialise.output.outputVariables.imageRepoName>/<+steps.Initialise.output.outputVariables.expressImageName>:<+steps.Initialise.output.outputVariables.imageTag>"
+                        tarPath=<+steps.Initialise.output.outputVariables.expressImageName>.tar
+                        expressContainerName=<+steps.Initialise.output.outputVariables.expressImageName>
+
+                        #Generate Tarball for Express Container
+                        if test -f "$dockerFile"; then
+                            echo "Generating Tarball for $imageName"
+                            /kaniko/executor --dockerfile $dockerFile \
+                            --context dir://app/server \
+                            --destination $imageDestination \
+                            --no-push \
+                            --tarPath $tarPath
+                            echo "Tarball Generated for $imageName"
+                            expressContainerPath=$tarPath
+                        else
+                            echo "No docker file exits for $imageType"
+                        fi
+
+
+                        #Source additional code for SCA scan
+                        additionalCode=$(find . -type f \( -name "build.gradle" -o -name "requirements.txt" \))
+
+                        #Find generated Tarballs
+                        tarBalls=$(ls | grep ".tar$")
+
+                        #Compress Tarballs and additional code to scanArchive
+                        tar -cvf scanArchive.tar --exclude=scanArchive.tar $tarBalls $additionalCode
+                        export tarLocation=$(pwd)/scanArchive.tar
+
+
+                        echo "scanArchive.tar located at: $tarLocation"
+                      envVariables:
+                        APP_NAME: <+pipeline.stages.Initialise.spec.execution.steps.Deduce_Configuration.output.outputVariables.appName>
+                      outputVariables:
+                        - name: tarLocation
+                        - name: appContainerPath
+                        - name: appContainerName
+                        - name: expressContainerPath
+                        - name: expressContainerName
+                      runAsUser: "0"
+                    description: this step generates a tarball
+                - parallel:
+                    - step:
+                        type: Run
+                        name: SCA Nexus IQ - Sonatype
+                        identifier: SCA_Nexus_IQ_Sonatype
+                        spec:
+                          connectorRef: <+pipeline.variables.appBuildBaseDockerRegistryConnectorId>
+                          image: java-redhat-git:develop
+                          shell: Bash
+                          command: |
+                            timeStamp=$(date '+%Y-%m-%d-%H.%M.%S')
+                            resultFilename=sonatype-scan-$iqApplication-$timeStamp.json
+                            threatLevelThreshold=$scaThreatLevelThreshold
+                            echo "[*] Downloading the latest CLI.."
+                            iqCliFilename="nexus-iq-cli-$iqVersion.jar"
+                            curl -sSf -O "https://sca.artifactory.ext.national.com.au/artifactory/SCA-build/$iqCliFilename"
+                            echo "[*] Invoking the Nexus IQ CLI on $iqApplication"
+                            {
+                                java -jar ./$iqCliFilename -a $iqUsername:$iqPassword -i $iqApplication -s $iqServer -t build -r $resultFilename $containerTarball
+                            } || {
+                                echo -e "\e[1;31m Sonatype scan returned with exit code $? \e[0m"
+                            }
+                            sonatypeScanId=$(jq -r '.scanId' $resultFilename)
+
+                            #copy result file to directory
+                            mkdir -p scanArtifacts
+                            cp $resultFilename scanArtifacts/$resultFilename
+
+                            #fail if any critical alerts
+                            criticalComponentCount=$(jq '.policyEvaluationResult.criticalComponentCount' $resultFilename)
+                            if [[ $criticalComponentCount > 0 ]]; then
+                                echo -e "\e[1;31m Scan result shows $criticalComponentCount critical alerts please review scan report above \e[0m"
+                                if [ $scaNoBreak != true ]; then
+                                exit 1
+                                else echo -e "\e[1;33m Build will continue, scaNoBreak set to: $scaNoBreak \e[0m"
+                                fi
+                            fi
+                            #fail if any alerts with threatlevel grater than threshold
+                            highThreatCount=$(cat $resultFilename | jq "[.policyEvaluationResult | select(.alerts[].trigger.threatLevel>${threatLevelThreshold})] | length")
+                            if [[ $highThreatCount > 0 ]]; then
+                                echo -e "\e[1;31m Scan result shows $highThreatCount alerts with threatLevel > $threatLevelThreshold please review scan report above \e[0m"
+                                if [ $scaNoBreak != true ]; then
+                                exit 1
+                                else echo -e "\e[1;33m Build will continue, scaNoBreak set to: $scaNoBreak \e[0m"
+                                fi
+                            fi
+                            echo "[*] Script execution complete."
+                          envVariables:
+                            iqVersion: 1.138.0-01
+                            iqApplication: <+pipeline.stages.Initialise.spec.execution.steps.Deduce_Configuration.output.outputVariables.scaApplicationId>
+                            iqServer: <+pipeline.stages.Initialise.spec.execution.steps.Deduce_Configuration.output.outputVariables.scaUrl>
+                            iqUsername: <+secrets.getValue(<+pipeline.stages.Initialise.spec.execution.steps.Deduce_Configuration.output.outputVariables.scaUsernameSecretId>)>
+                            iqPassword: <+secrets.getValue(<+pipeline.stages.Initialise.spec.execution.steps.Deduce_Configuration.output.outputVariables.scaPasswordSecretId>)>
+                            containerTarball: <+pipeline.stages.Containerise.spec.execution.steps.Generate_Tarballs.output.outputVariables.tarLocation>
+                            scaNoBreak: <+pipeline.stages.Initialise.spec.execution.steps.Deduce_Configuration.output.outputVariables.scaNoBreak>
+                            scaThreatLevelThreshold: <+pipeline.stages.Initialise.spec.execution.steps.Deduce_Configuration.output.outputVariables.scaThreatLevelThreshold>
+                          outputVariables:
+                            - name: sonatypeScanId
+                            - name: resultFilename
+                          runAsUser: "0"
+                          resources:
+                            limits:
+                              memory: <+pipeline.stages.Initialise.spec.execution.steps.Deduce_Configuration.output.outputVariables.platformScanMemory>
+                              cpu: <+pipeline.stages.Initialise.spec.execution.steps.Deduce_Configuration.output.outputVariables.platformScanCpu>
+                        description: Performs the SCA scan with sonatype nexus IQ
+                        when:
+                          stageStatus: Success
+                          condition: <+pipeline.stages.Initialise.spec.execution.steps.Deduce_Configuration.output.outputVariables.scaEnabled>
+                        failureStrategies: []
+                    - step:
+                        name: CSS Prisma - Twistlock - App
+                        identifier: CSS_Prisma_Twistlock_App
+                        template:
+                          templateRef: account.Step_Template_CSS_Prisma_Twistlock_Scans
+                          versionLabel: V1.0.1
+                          templateInputs:
+                            type: Run
+                            spec:
+                              connectorRef: <+pipeline.variables.appBuildBaseDockerRegistryConnectorId>
+                              image: java-redhat-git:develop
+                              envVariables:
+                                containerTarball: <+steps.Generate_Tarballs.output.outputVariables.appContainerPath>
+                                project: <+pipeline.stages.Initialise.spec.execution.steps.Deduce_Configuration.output.outputVariables.cssProject>
+                                prismaUrl: <+pipeline.stages.Initialise.spec.execution.steps.Deduce_Configuration.output.outputVariables.cssPrismaUrl>
+                                prismaUsername: <+secrets.getValue(<+pipeline.stages.Initialise.spec.execution.steps.Deduce_Configuration.output.outputVariables.cssUsernameSecretId>)>
+                                prismaPassword: <+secrets.getValue(<+pipeline.stages.Initialise.spec.execution.steps.Deduce_Configuration.output.outputVariables.cssPasswordSecretId>)>
+                                applicationName: <+pipeline.stages.Initialise.spec.execution.steps.Deduce_Configuration.output.outputVariables.appName>
+                                cssNoBreak: <+pipeline.stages.Initialise.spec.execution.steps.Deduce_Configuration.output.outputVariables.cssNoBreak>
+                              resources:
+                                limits:
+                                  memory: <+pipeline.stages.Initialise.spec.execution.steps.Deduce_Configuration.output.outputVariables.platformScanMemory>
+                                  cpu: <+pipeline.stages.Initialise.spec.execution.steps.Deduce_Configuration.output.outputVariables.platformScanCpu>
+                            when:
+                              condition: <+pipeline.stages.Initialise.spec.execution.steps.Deduce_Configuration.output.outputVariables.cssEnabled>
+                - step:
+                    name: CSS Prisma - Twistlock - Express
+                    identifier: CSS_Prisma_Twistlock_Express
+                    template:
+                      templateRef: account.Step_Template_CSS_Prisma_Twistlock_Scan
+                      versionLabel: V1.0
+                      templateInputs:
+                        type: Run
+                        spec:
+                          connectorRef: <+pipeline.variables.appBuildBaseDockerRegistryConnectorId>
+                          image: java-redhat-git:develop
+                          envVariables:
+                            containerTarball: <+steps.Generate_Tarballs.output.outputVariables.expressContainerPath>
+                            project: <+pipeline.stages.Initialise.spec.execution.steps.Deduce_Configuration.output.outputVariables.cssProject>
+                            prismaUrl: <+pipeline.stages.Initialise.spec.execution.steps.Deduce_Configuration.output.outputVariables.cssPrismaUrl>
+                            prismaUsername: <+secrets.getValue(<+pipeline.stages.Initialise.spec.execution.steps.Deduce_Configuration.output.outputVariables.cssUsernameSecretId>)>
+                            prismaPassword: <+secrets.getValue(<+pipeline.stages.Initialise.spec.execution.steps.Deduce_Configuration.output.outputVariables.cssPasswordSecretId>)>
+                            applicationName: <+pipeline.stages.Initialise.spec.execution.steps.Deduce_Configuration.output.outputVariables.appName>
+                            cssNoBreak: <+pipeline.stages.Initialise.spec.execution.steps.Deduce_Configuration.output.outputVariables.cssNoBreak>
+                            imageName: <+steps.Initialise.output.outputVariables.imageRepoName>/<+steps.Generate_Tarballs.output.outputVariables.expressContainerName>:<+steps.Initialise.output.outputVariables.imageTag>
+                          resources:
+                            limits:
+                              memory: <+pipeline.stages.Initialise.spec.execution.steps.Deduce_Configuration.output.outputVariables.platformScanMemory>
+                              cpu: <+pipeline.stages.Initialise.spec.execution.steps.Deduce_Configuration.output.outputVariables.platformScanCpu>
+                        when:
+                          condition: <+pipeline.stages.Initialise.spec.execution.steps.Deduce_Configuration.output.outputVariables.cssEnabled>
+                - step:
+                    type: Run
+                    name: Package Scan Artifacts
+                    identifier: Package_Scan_Artifacts
+                    spec:
+                      connectorRef: <+pipeline.variables.appBuildBaseDockerRegistryConnectorId>
+                      image: java-redhat-git:develop
+                      shell: Bash
+                      command: |-
+                        uploadScanArtifacts=false
+                        if [ "$(ls -A scanArtifacts/)" ]; then
+                            mkdir -p buildArtifacts
+                            cd scanArtifacts
+                            zip -r "../buildArtifacts/container-scan-artifacts-<+pipeline.sequenceId>.zip" *
+                            uploadScanArtifacts=true
+                        else
+                            echo "scanArtifacts folder is empty. Skipped zipping of artifacts..."
+                        fi
+                        export uploadScanArtifacts
+                      outputVariables:
+                        - name: uploadScanArtifacts
+                    when:
+                      stageStatus: All
+                    failureStrategies: []
+                - step:
+                    type: ArtifactoryUpload
+                    name: Upload Scan Artifact
+                    identifier: Upload_Scan_Artifact
+                    spec:
+                      connectorRef: <+pipeline.variables.ArtifactoryConnectorId>
+                      target: <+variable.ARTIFACT_BUILD_REPO>/<+pipeline.stages.Initialise.spec.execution.steps.Deduce_Configuration.output.outputVariables.appName>/<+codebase.commitSha>/container-scan-artifacts-<+pipeline.sequenceId>.zip
+                      sourcePath: buildArtifacts/container-scan-artifacts-<+pipeline.sequenceId>.zip
+                    description: This step will upload any container scan results performed in this stage
+                    when:
+                      stageStatus: All
+                      condition: <+execution.steps.Package_Scan_Artifacts.output.outputVariables.uploadScanArtifacts>
+                    failureStrategies: []
+                - parallel:
+                    - step:
+                        name: Send Deputy SCA Event
+                        identifier: Send_Deputy_SCA_Event
+                        template:
+                          templateRef: account.Step_Template_Deputy_Send_Event
+                          versionLabel: V1.0.0
+                          templateInputs:
+                            type: Run
+                            spec:
+                              connectorRef: <+pipeline.variables.ArtifactoryCdRepositoryConnectorId>
+                              image: deputy-cli:<+pipeline.stages.Initialise.spec.execution.steps.Deduce_Configuration.output.outputVariables.deputyCliVersion>
+                              envVariables:
+                                DEPUTY_CLIENT_ID: <+pipeline.stages.Initialise.spec.execution.steps.Deduce_Configuration.output.outputVariables.deputyClientId>
+                                DEPUTY_CLIENT_SECRET: <+secrets.getValue(<+pipeline.stages.Initialise.spec.execution.steps.Deduce_Configuration.output.outputVariables.deputyClientSecretId>)>
+                                DEPUTY_BUILD_ID: <+pipeline.stages.Start_Build.spec.execution.steps.Send_Deputy_Build_Started.output.outputVariables.DEPUTY_BUILD_ID>
+                                DEPUTY_ACCESS_TOKEN: <+pipeline.stages.Start_Build.spec.execution.steps.Send_Deputy_Build_Started.output.outputVariables.DEPUTY_ACCESS_TOKEN>
+                                DEPUTY_ENVIRONMENT: <+pipeline.stages.Initialise.spec.execution.steps.Deduce_Configuration.output.outputVariables.deputyEnv>
+                                DEPUTY_EVENT: sca-scan-completed
+                                DEPUTY_ARGS: "--event-metadata publicId <+pipeline.stages.Initialise.spec.execution.steps.Deduce_Configuration.output.outputVariables.scaApplicationId> --event-metadata reportId <+pipeline.stages.Containerise.spec.execution.steps.SCA_Nexus_IQ_Sonatype.output.outputVariables.sonatypeScanId>"
+                            when:
+                              condition: <+pipeline.stages.Containerise.spec.execution.steps.SCA_Nexus_IQ_Sonatype.output.outputVariables.sonatypeScanId> != null && <+pipeline.stages.Initialise.spec.execution.steps.Deduce_Configuration.output.outputVariables.cloudComplianceEnabled>
+                    - step:
+                        name: Send Deputy CSS Event
+                        identifier: Send_Deputy_CSS_Event
+                        template:
+                          templateRef: account.Step_Template_Deputy_Send_Event
+                          versionLabel: V1.0.0
+                          templateInputs:
+                            type: Run
+                            spec:
+                              connectorRef: <+pipeline.variables.ArtifactoryCdRepositoryConnectorId>
+                              image: deputy-cli:<+pipeline.stages.Initialise.spec.execution.steps.Deduce_Configuration.output.outputVariables.deputyCliVersion>
+                              envVariables:
+                                DEPUTY_CLIENT_ID: <+pipeline.stages.Initialise.spec.execution.steps.Deduce_Configuration.output.outputVariables.deputyClientId>
+                                DEPUTY_CLIENT_SECRET: <+secrets.getValue(<+pipeline.stages.Initialise.spec.execution.steps.Deduce_Configuration.output.outputVariables.deputyClientSecretId>)>
+                                DEPUTY_BUILD_ID: <+pipeline.stages.Start_Build.spec.execution.steps.Send_Deputy_Build_Started.output.outputVariables.DEPUTY_BUILD_ID>
+                                DEPUTY_ACCESS_TOKEN: <+pipeline.stages.Start_Build.spec.execution.steps.Send_Deputy_Build_Started.output.outputVariables.DEPUTY_ACCESS_TOKEN>
+                                DEPUTY_ENVIRONMENT: <+pipeline.stages.Initialise.spec.execution.steps.Deduce_Configuration.output.outputVariables.deputyEnv>
+                                DEPUTY_EVENT: css-scan-completed
+                                DEPUTY_ARGS: "--event-metadata publicId <+pipeline.stages.Initialise.spec.execution.steps.Deduce_Configuration.output.outputVariables.cssProject> --event-metadata reportId <+pipeline.stages.Containerise.spec.execution.steps.CSS_Prisma_Twistlock_App.output.outputVariables.scanId>"
+                            when:
+                              condition: <+pipeline.stages.Containerise.spec.execution.steps.CSS_Prisma_Twistlock_App.output.outputVariables.scanId> != null && <+pipeline.stages.Initialise.spec.execution.steps.Deduce_Configuration.output.outputVariables.cloudComplianceEnabled>
+                - parallel:
+                    - step:
+                        identifier: build_and_push_app
+                        type: BuildAndPushDockerRegistry
+                        name: Build and push app
+                        spec:
+                          connectorRef: <+pipeline.variables.AppContainerImageBuildDockerConnectorId>
+                          repo: <+steps.Initialise.output.outputVariables.imageRepoName>/<+steps.Initialise.output.outputVariables.appImageName>
+                          tags:
+                            - <+steps.Initialise.output.outputVariables.imageTag>
+                          dockerfile: app/frontend/Dockerfile
+                          context: app/frontend
+                          runAsUser: "0"
+                          resources:
+                            limits:
+                              memory: <+pipeline.stages.Initialise.spec.execution.steps.Deduce_Configuration.output.outputVariables.containerImageBuildMemory>
+                              cpu: <+pipeline.stages.Initialise.spec.execution.steps.Deduce_Configuration.output.outputVariables.containerImageBuildCpu>
+                        when:
+                          stageStatus: Success
+                          condition: <+steps.Initialise.output.outputVariables.pushAppImage>
+                        failureStrategies: []
+                    - step:
+                        identifier: build_and_push_express
+                        type: BuildAndPushDockerRegistry
+                        name: Build and push Express
+                        spec:
+                          connectorRef: <+pipeline.variables.AppContainerImageBuildDockerConnectorId>
+                          repo: <+steps.Initialise.output.outputVariables.imageRepoName>/<+steps.Initialise.output.outputVariables.expressImageName>
+                          tags:
+                            - <+steps.Initialise.output.outputVariables.imageTag>
+                          dockerfile: app/server/Dockerfile
+                          context: app/server
+                          runAsUser: "0"
+                          resources:
+                            limits:
+                              memory: <+pipeline.stages.Initialise.spec.execution.steps.Deduce_Configuration.output.outputVariables.containerImageBuildMemory>
+                              cpu: <+pipeline.stages.Initialise.spec.execution.steps.Deduce_Configuration.output.outputVariables.containerImageBuildCpu>
+                        when:
+                          stageStatus: Success
+                          condition: <+steps.Initialise.output.outputVariables.pushExpressImage>
+                        failureStrategies: []
+            sharedPaths:
+              - /.jfrog
+          when:
+            pipelineStatus: Success
+            condition: <+pipeline.stages.Initialise.spec.execution.steps.Deduce_Configuration.output.outputVariables.buildImageEnabled>
+      - stage:
+          name: Build and Push APIs
+          identifier: Build_and_Push_APIs
+          type: CI
+          spec:
+            cloneCodebase: true
+            infrastructure:
+              useFromStage: Initialise
+            execution:
+              steps:
+                - step:
+                    name: Check Artifact
+                    identifier: Check_Artifact
+                    template:
+                      templateRef: account.Step_Template_Check_Artifacts
+                      versionLabel: V1.0.1
+                      templateInputs:
+                        type: Run
+                        spec:
+                          connectorRef: <+pipeline.variables.ArtifactoryMsbaseRepositoryConnectorId>
+                          image: <+pipeline.stages.Initialise.spec.execution.steps.Deduce_Configuration.output.outputVariables.appBuildBaseContainerImage>
+                          envVariables:
+                            USERNAME: <+secrets.getValue(<+pipeline.stages.Initialise.spec.execution.steps.Deduce_Configuration.output.outputVariables.artifactoryUsernameSecretId>)>
+                            PASSWORD: <+secrets.getValue(<+pipeline.stages.Initialise.spec.execution.steps.Deduce_Configuration.output.outputVariables.artifactoryPasswordSecretId>)>
+                            APP_NAME: <+pipeline.stages.Initialise.spec.execution.steps.Deduce_Configuration.output.outputVariables.appName>
+                            API_PACKAGE_NAME: <+pipeline.stages.Initialise.spec.execution.steps.Deduce_Configuration.output.outputVariables.apiPackageName>
+                - step:
+                    name: API Validate
+                    identifier: API_Validate
+                    template:
+                      templateRef: account.Step_Template_API_Validates
+                      versionLabel: V1.0.2
+                      templateInputs:
+                        type: Run
+                        spec:
+                          connectorRef: <+pipeline.variables.ArtifactoryCdRepositoryConnectorId>
+                          image: swagstar-cli:<+pipeline.stages.Initialise.spec.execution.steps.Deduce_Configuration.output.outputVariables.swagstarCliVersion>
+                          envVariables:
+                            KONG_HOST: <+pipeline.stages.Initialise.spec.execution.steps.Deduce_Configuration.output.outputVariables.apiHost>
+                            KONG_TENANCY: <+pipeline.variables.KONG_TENANCY>
+                            AZURE_ENVIRONMENT: <+pipeline.stages.Initialise.spec.execution.steps.Deduce_Configuration.output.outputVariables.azureEnvironment>
+                            AZURE_REGION: <+pipeline.stages.Initialise.spec.execution.steps.Deduce_Configuration.output.outputVariables.azureRegion>
+                            EXTRA_SWAGSTAR_VALIDATE_ARGS: <+pipeline.stages.Initialise.spec.execution.steps.Deduce_Configuration.output.outputVariables.extraSwagstarValidateArgs>
+                            KONG_ENV_ALIAS_AZURE: <+pipeline.stages.Initialise.spec.execution.steps.Deduce_Configuration.output.outputVariables.apiEnvAliasAzure>
+                            KONG_ENV_ALIAS_AWS: <+pipeline.stages.Initialise.spec.execution.steps.Deduce_Configuration.output.outputVariables.apiEnvAliasAws>
+                        when:
+                          condition: <+execution.steps.Check_Artifact.output.outputVariables.apiPackageExists>  != "true"
+                - step:
+                    name: Package API
+                    identifier: Package_API
+                    template:
+                      templateRef: account.Step_Template_Package_APIs
+                      versionLabel: V1.0.0
+                      templateInputs:
+                        type: Run
+                        spec:
+                          connectorRef: <+input>
+                          image: <+input>
+                          envVariables:
+                            API_PACKAGE_NAME: <+input>
+                        when:
+                          condition: <+input>
+                - step:
+                    type: ArtifactoryUpload
+                    name: Upload API Package
+                    identifier: Upload_API_Package
+                    spec:
+                      connectorRef: <+pipeline.variables.ArtifactoryConnectorId>
+                      target: <+variable.ARTIFACT_BUILD_REPO>/<+pipeline.stages.Initialise.spec.execution.steps.Deduce_Configuration.output.outputVariables.appName>/<+codebase.commitSha>/<+pipeline.stages.Initialise.spec.execution.steps.Deduce_Configuration.output.outputVariables.apiPackageName>
+                      sourcePath: buildArtifacts/<+pipeline.stages.Initialise.spec.execution.steps.Deduce_Configuration.output.outputVariables.apiPackageName>
+                    when:
+                      stageStatus: Success
+                      condition: <+execution.steps.Check_Artifact.output.outputVariables.apiPackageExists>  != "true"
+                    failureStrategies: []
+            sharedPaths:
+              - /.jfrog
+          when:
+            pipelineStatus: Success
+            condition: <+pipeline.stages.Initialise.spec.execution.steps.Deduce_Configuration.output.outputVariables.apiEnabled>
+      - stage:
+          name: Complete Build
+          identifier: Complete_Build
+          description: Send Deputy the Build Completed signal. Needs a BUILD ID generated from the start of the pipeline.
+          type: CI
+          spec:
+            cloneCodebase: false
+            infrastructure:
+              useFromStage: Initialise
+            execution:
+              steps:
+                - step:
+                    name: Send Deputy Build Completed
+                    identifier: Send_Deputy_Build_Completed
+                    template:
+                      templateRef: account.Step_Template_Deputy_Build_Completed
+                      versionLabel: V1.2.0
+                      templateInputs:
+                        type: Run
+                        spec:
+                          connectorRef: <+pipeline.variables.ArtifactoryCdRepositoryConnectorId>
+                          image: deputy-cli:<+pipeline.stages.Initialise.spec.execution.steps.Deduce_Configuration.output.outputVariables.deputyCliVersion>
+                          envVariables:
+                            DEPUTY_CLIENT_ID: <+pipeline.stages.Initialise.spec.execution.steps.Deduce_Configuration.output.outputVariables.deputyClientId>
+                            DEPUTY_CLIENT_SECRET: <+secrets.getValue(<+pipeline.stages.Initialise.spec.execution.steps.Deduce_Configuration.output.outputVariables.deputyClientSecretId>)>
+                            DEPUTY_BUILD_ID: <+pipeline.stages.Start_Build.spec.execution.steps.Send_Deputy_Build_Started.output.outputVariables.DEPUTY_BUILD_ID>
+                            DEPUTY_ACCESS_TOKEN: <+pipeline.stages.Start_Build.spec.execution.steps.Send_Deputy_Build_Started.output.outputVariables.DEPUTY_ACCESS_TOKEN>
+                            DEPUTY_ENVIRONMENT: <+pipeline.stages.Initialise.spec.execution.steps.Deduce_Configuration.output.outputVariables.deputyEnv>
+                            CONTAINER_IMAGES: <+pipeline.stages.Containerise.spec.execution.steps.Initialise.output.outputVariables.containerImages>
+                            ARTEFACTS: <+input>
+          when:
+            pipelineStatus: Success
+            condition: <+pipeline.stages.Initialise.spec.execution.steps.Deduce_Configuration.output.outputVariables.cloudComplianceEnabled>
+    variables:
+      - name: appCategory
+        type: String
+        description: ""
+        value: <+input>
+      - name: appId
+        type: String
+        description: ""
+        value: <+input>
+      - name: costCentre
+        type: String
+        description: ""
+        value: <+input>
+      - name: environment
+        type: String
+        description: ""
+        value: <+input>
+      - name: owner
+        type: String
+        description: ""
+        value: <+input>
+      - name: supportGroup
+        type: String
+        description: ""
+        value: <+input>
+      - name: managedComponent
+        type: String
+        description: ""
+        value: <+input>
+      - name: k8sConnectorId
+        type: String
+        description: ""
+        value: cik8sdefault
+      - name: ArtifactoryCdRepositoryConnectorId
+        type: String
+        description: ""
+        value: cdartifactoryeks
+      - name: AppContainerImageBuildDockerConnectorId
+        type: String
+        description: ""
+        value: dockertenantpusheks
+      - name: k8sNamespace
+        type: String
+        description: ""
+        value: <+input>
+      - name: NabxPipelineToolsConnectorId
+        type: String
+        description: ""
+        value: nabxdockerbuild
+      - name: NabxNpmEmail
+        type: String
+        description: ""
+        value: <+input>
+      - name: ArtifactoryMsbaseRepositoryConnectorId
+        type: String
+        description: ""
+        value: dockermsbase
+      - name: ArtifactoryConnectorId
+        type: String
+        description: ""
+        value: artifactoryeksnonprod
+      - name: appBuildBaseDockerRegistryConnectorId
+        type: String
+        description: ""
+        value: msbaseartifactoryeks
+      - name: KONG_TENANCY
+        type: String
+        description: ""
+        value: <+input>
+    delegateSelectors:
+      - team:<+project.identifier>
+      - cluster:default
+      - module:ci
+  versionLabel: V1.0.5-rc

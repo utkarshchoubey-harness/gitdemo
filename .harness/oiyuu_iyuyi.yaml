@@ -1,0 +1,108 @@
+template:
+  name: CSS Prisma Twistlock Scan
+  type: Step
+  spec:
+    type: Run
+    spec:
+      connectorRef: <+input>
+      image: <+input>
+      shell: Bash
+      command: |
+        echo "Twistcli Beta"
+
+        echo "downloading twistcli..."
+        curl -k \
+        -u ${prismaUsername}:${prismaPassword} \
+        -H 'Content-Type: application/json' \
+        -X GET \
+        -o twistcli \
+        "${prismaUrl}/api/v1/util/twistcli?project=${project}"
+        chmod 0755 ./twistcli 
+        chmod +x twistcli
+
+        timeStamp=$(date '+%Y-%m-%d-%H.%M.%S')
+        resultFilename=twistlock-scan-$applicationName-$timeStamp.json
+
+        echo "Running Scan..."
+
+        {
+            ./twistcli --debug images scan --details --address \
+            ${prismaUrl} -u "${prismaUsername}" -p $prismaPassword \
+            --tarball \
+            --project $project \
+            --output-file $resultFilename \
+            ${containerTarball}
+        } || {
+            echo -e "\e[1;31m Twistcli scan returned with exit code $? \e[0m"
+        }
+
+        echo "Scan Completed"
+
+        #scanId for deputy event will be an output variable
+        scanId=$(jq -r '.results[0].id' $resultFilename | tr -d 'sha256:')
+
+        #parse results for details
+        cat << EOF
+        Prisma Scan Results
+        Image Name: $(jq -r '.results[0].name'  $resultFilename)
+        Scan ID: $scanId
+        Image Distro: $(jq -r '.results[0].distro'  $resultFilename)
+        Image Distro Release: $(jq -r '.results[0].distroRelease'  $resultFilename) 
+        Scan Report:  $(jq -r '.consoleURL' $resultFilename)
+        -----------------------------------------
+        Vulnerability Results:
+        Critical: $(jq -r '.results[0].vulnerabilityDistribution.critical' $resultFilename)
+        High:     $(jq -r '.results[0].vulnerabilityDistribution.high' $resultFilename)
+        Medium:   $(jq -r '.results[0].vulnerabilityDistribution.medium' $resultFilename)
+        Low:      $(jq -r '.results[0].vulnerabilityDistribution.low' $resultFilename)
+        Compliance Results:
+        Critical: $(jq -r '.results[0].complianceDistribution.critical' $resultFilename)
+        High:     $(jq -r '.results[0].complianceDistribution.high' $resultFilename)
+        Medium:   $(jq -r '.results[0].complianceDistribution.medium' $resultFilename)
+        Low:      $(jq -r '.results[0].complianceDistribution.low' $resultFilename)
+        EOF
+
+        #copy result file to directory
+        mkdir -p scanArtifacts
+        chmod 755 $resultFilename
+        cp $resultFilename scanArtifacts/$resultFilename
+
+        #fail if any critical vulnerabiities
+        criticaVvulnerabilityCount=$(jq -r '.results[0].vulnerabilityDistribution.critical' $resultFilename)
+        if [[ $criticaVvulnerabilityCount > 0 ]]; then
+            echo -e "\e[1;31m Scan result shows $criticaVvulnerabilityCount critical vulnerabilities please review scan report above \e[0m"
+            if [ $cssNoBreak != true ]; then
+            exit 1
+            else echo -e "\e[1;33m Build will continue, cssNoBreak set to: $cssNoBreak \e[0m"
+            fi
+        fi
+
+        #fail if any critical vulnerabiities
+        criticalComplianceCount=$(jq -r '.results[0].complianceDistribution.critical' $resultFilename)
+        if [[ $criticalComplianceCount > 0 ]]; then
+            echo -e "\e[1;31m Scan result shows $criticalComplianceCount critical compliance items please review scan report above \e[0m"
+            if [ $cssNoBreak != true ]; then
+            exit 1
+            else echo -e "\e[1;33m Build will continue, cssNoBreak set to: $cssNoBreak \e[0m"
+            fi
+        fi
+      envVariables:
+        containerTarball: <+input>
+        project: <+input>
+        prismaUrl: <+input>
+        prismaUsername: <+input>
+        prismaPassword: <+input>
+        applicationName: <+input>
+        cssNoBreak: <+input>
+      outputVariables:
+        - name: scanId
+      runAsUser: "0"
+      resources:
+        limits:
+          memory: <+input>
+          cpu: <+input>
+    when:
+      stageStatus: Success
+      condition: <+input>
+  identifier: Step_Template_CSS_Prisma_Twistlock_Scans
+  versionLabel: V1.0.1

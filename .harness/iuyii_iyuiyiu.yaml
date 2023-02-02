@@ -504,7 +504,7 @@ template:
                             DEPUTY_EVENT: sonarq-scan-completed
                             DEPUTY_ARGS: "--event-metadata taskId <+pipeline.stages.Source_Code_Build_and_Test.spec.execution.steps.SonarQube.output.outputVariables.taskId>"
                         when:
-                          condition: (<+pipeline.stages.Source_Code_Build_and_Test.spec.execution.steps.SonarQube.output.outputVariables.sendDeputySonarqubeEvent> ? <+pipeline.stages.Source_Code_Build_and_Test.spec.execution.steps.SonarQube.output.outputVariables.sendDeputySonarqubeEvent>:false) && <+pipeline.stages.Initialise.spec.execution.steps.Deduce_Configuration.output.outputVariables.cloudComplianceEnabled>
+                          condition: (<+pipeline.stages.Source_Code_Build_and_Test.spec.execution.steps.SonarQube.output.outputVariables.sendDeputySonarqubeEvent> ? <+pipeline.stages.Source_Code_Build_and_Test.spec.execution.steps.SonarQube.output.outputVariables.sendDeputySonarqubeEvent> : false) && <+pipeline.stages.Initialise.spec.execution.steps.Deduce_Configuration.output.outputVariables.cloudComplianceEnabled>
                 - parallel:
                     - step:
                         type: Run

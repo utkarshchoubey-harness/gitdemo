@@ -1,0 +1,150 @@
+pipeline:
+  name: iyuiyui
+  identifier: iyuiyui
+  template:
+    templateRef: account.Pipeline_Template_NABx_Containerised_MiniApps
+    versionLabel: V1.0.5-rc
+    templateInputs:
+      properties:
+        ci:
+          codebase:
+            connectorRef: <+input>
+            repoName: <+input>
+            build: <+input>
+      stages:
+        - stage:
+            identifier: Initialise
+            type: CI
+            spec:
+              execution:
+                steps:
+                  - step:
+                      identifier: Deduce_Configuration
+                      type: Run
+                      spec:
+                        envVariables:
+                          CLOUD_COMPLIANCE_ENABLED: <+input>
+                          DEPUTY_CLI_VERSION: <+input>
+                          DEPUTY_CLIENT_SECRET_ID: <+input>
+                          DEPUTY_CLIENT_ID: <+input>
+                          DEPUTY_APP_ID: <+input>
+                          DEPUTY_ENV: <+input>
+                          SNAPSHOT_BUILD: <+input>
+                          ARTIFACTORY_USERNAME_SECRET_ID: <+input>
+                          ARTIFACTORY_PASSWORD_SECRET_ID: <+input>
+                          APP_NAME: <+input>
+                          CONTAINER_IMAGE_BUILD_MEMORY: <+input>
+                          CONTAINER_IMAGE_BUILD_CPU: <+input>
+                          UNIT_TEST_MEMORY: <+input>
+                          UNIT_TEST_CPU: <+input>
+                          NABX_BUILD_ENV_VERSION: <+input>
+                          NABX_CHANGE_ID: <+input>
+                          NABX_NET_STORAGE_ARTIFACT_LOCATION: <+input>
+                          NABX_NET_STORAGE_DESTINATION_FOLDER: <+input>
+                          NABX_BUILD_SKIP_PREFLIGHT_CHECK: <+input>
+                          NABX_BUILD_NODE_ENV: <+input>
+                          SONARQUBE_API_KEY: <+input>
+                          SONARQUBE_ENABLED: <+input>
+                          SONARSCANNER_VERSION: <+input>
+                          SONAR_HOST: <+input>
+                          GITHUB_RELEASE_BRANCH: <+input>
+                          BUILD_IMAGE_ENABLED: <+input>
+                          CSS_PROJECT: <+input>
+                          CSS_PRISMA_URL: <+input>
+                          CSS_USERNAME: <+input>
+                          CSS_PASSWORD: <+input>
+                          CSS_NO_BREAK: <+input>
+                          PLATFORM_SCAN_MEMORY: <+input>
+                          PLATFORM_SCAN_CPU: <+input>
+                          CSS_ENABLED: <+input>
+                          NABX_NPM_USERNAME_ID: <+input>
+                          NABX_NPM_PASSWORD_ID: <+input>
+                          NABX_NPM_PRE_RELEASE_TAG: <+input>
+                          NABX_NET_STORAGE_ENV_VERSION: <+input>
+                          NABX_NET_STORAGE_API_KEY_ID: <+input>
+                          NABX_GITHUB_TOKEN: <+input>
+                          NABX_NET_STORAGE_UPLOAD_ACCOUNT: <+input>
+                          NABX_NET_STORAGE_CP_CODE: <+input>
+                          NABX_NET_STORAGE_HOST: <+input>
+                          SCA_APP_ID: <+input>
+                          SCA_URL: <+input>
+                          SCA_USERNAME: <+input>
+                          SCA_PASSWORD: <+input>
+                          SCA_ENABLED: <+input>
+                          SCA_NO_BREAK: <+input>
+                          SCA_ALERT_THRESHOLD: <+input>
+                          API_PACKAGE_NAME: <+input>
+                          SWAGSTAR_CLI_VERSION: <+input>
+                          API_HOST: <+input>
+                          AZURE_ENVIRONMENT: <+input>
+                          AZURE_REGION: <+input>
+                          EXTRA_SWAGSTAR_VALIDATE_ARGS: <+input>
+                          API_ENV_ALIAS_AZURE: <+input>
+                          APP_BUILD_BASE_CONTAINER_IMAGE: <+input>
+                          API_ENABLED: <+input>
+        - stage:
+            identifier: Build_and_Push_APIs
+            type: CI
+            spec:
+              execution:
+                steps:
+                  - step:
+                      identifier: Package_API
+                      template:
+                        templateInputs:
+                          type: Run
+                          spec:
+                            connectorRef: <+input>
+                            image: <+input>
+                            envVariables:
+                              API_PACKAGE_NAME: <+input>
+                          when:
+                            condition: <+input>
+        - stage:
+            identifier: Complete_Build
+            type: CI
+            spec:
+              execution:
+                steps:
+                  - step:
+                      identifier: Send_Deputy_Build_Completed
+                      template:
+                        templateInputs:
+                          type: Run
+                          spec:
+                            envVariables:
+                              ARTEFACTS: <+input>
+      variables:
+        - name: appCategory
+          type: String
+          value: <+input>
+        - name: appId
+          type: String
+          value: <+input>
+        - name: costCentre
+          type: String
+          value: <+input>
+        - name: environment
+          type: String
+          value: <+input>
+        - name: owner
+          type: String
+          value: <+input>
+        - name: supportGroup
+          type: String
+          value: <+input>
+        - name: managedComponent
+          type: String
+          value: <+input>
+        - name: k8sNamespace
+          type: String
+          value: <+input>
+        - name: NabxNpmEmail
+          type: String
+          value: <+input>
+        - name: KONG_TENANCY
+          type: String
+          value: <+input>
+  tags: {}
+  projectIdentifier: njh
+  orgIdentifier: default

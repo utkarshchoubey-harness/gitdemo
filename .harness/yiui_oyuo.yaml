@@ -1,0 +1,50 @@
+template:
+  name: Check Artifact
+  type: Step
+  spec:
+    type: Run
+    spec:
+      connectorRef: <+input>
+      image: <+input>
+      shell: Bash
+      command: |-
+
+        # Set variables
+        apiPackageExists=false
+        artifactoryBaseUrl='https://artifactory.aus.thenational.com:443/artifactory'
+        commitSha='<+codebase.commitSha>'
+        artifactBuildRepo=<+variable.ARTIFACT_BUILD_REPO>
+        apiArtifactRelativePath="${artifactBuildRepo}/${APP_NAME}/${commitSha}/${API_PACKAGE_NAME}"
+        artifactoryFilePath="${artifactoryBaseUrl}/${apiArtifactRelativePath}"
+        labeledApiArtifactRelativePath="api:${apiArtifactRelativePath}"
+
+        # curl to get status_code
+        status_code=$(curl --write-out %{http_code} --silent --output /dev/null -u ${USERNAME}:${PASSWORD} ${artifactoryFilePath})
+        echo "status_code =" $status_code
+
+        # Check headers and set apiPackageExists
+        if [[ $status_code == 200 ]]; then
+            echo "Artifact already exists at ${artifactoryFilePath} Skipping stage"
+            apiPackageExists=true
+        elif [[ $status_code == 404 ]]; then
+            echo "Artifact does not exist at ${artifactoryFilePath}"
+            apiPackageExists=false
+        else
+            echo "Something went wrong, please review the logs"
+            exit 1
+        fi
+
+        echo "apiPackageExists: ${apiPackageExists}"
+        export labeledApiArtifactRelativePath
+      envVariables:
+        USERNAME: <+input>
+        PASSWORD: <+input>
+        APP_NAME: <+input>
+        API_PACKAGE_NAME: <+input>
+      outputVariables:
+        - name: apiPackageExists
+        - name: labeledApiArtifactRelativePath
+    when:
+      stageStatus: Success
+  identifier: Step_Template_Check_Artifacts
+  versionLabel: V1.0.1

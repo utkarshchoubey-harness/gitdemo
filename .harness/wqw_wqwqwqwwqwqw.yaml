@@ -1,0 +1,63 @@
+template:
+  name: Deputy Build Completed
+  identifier: Step_Template_Deputy_Build_Completed
+  type: Step
+  description: A step template to send `deputycli build completed` event
+  spec:
+    type: Run
+    spec:
+      connectorRef: <+input>
+      image: <+input>
+      shell: Bash
+      command: |-
+        deputycli --version
+
+        if [[ -z "${DEPUTY_ACCESS_TOKEN}" ]]; then
+            DEPUTY_ACCESS_TOKEN=$(deputycli access get-token -d "${DEPUTY_CLIENT_ID}" -v DEBUG 2>>copy_amis.stderr | jq -r .access_token)
+        fi
+        export DEPUTY_ACCESS_TOKEN
+
+        deputycmd=(deputycli event "build-completed" -b "${DEPUTY_BUILD_ID}" -v DEBUG)
+
+        IFS=, images=($CONTAINER_IMAGES)
+        for image in ${images[@]}
+        do
+            # Harness use "null" when no <+input> is specified so we need to cater for that case
+            if [ \( ! -z "$image" \) -a \( "$image" != "null" \) ]; then deputycmd+=(--docker-image $image); fi
+        done
+
+        IFS=, artefacts=($ARTEFACTS)
+        for artefact in ${artefacts[@]}
+        do
+            # Harness use "null" when no <+input> is specified so we need to cater for that case
+            if [ \( ! -z "$artefact" \) -a \( "$artefact" != "null" \) ]; then deputycmd+=(--item $artefact); fi
+        done
+        echo ${deputycmd[@]}
+
+        rm -f deputy.err || true
+
+        event_output=$(${deputycmd[@]})
+
+        echo "${event_output}"
+
+        if [[ -z "${event_output}" ]]; then
+            echo "Failed to retrieve response from `deputycli event`"
+            exit 1
+        fi
+
+        echo "Successfully registered completed build with Deputy: ${DEPUTY_BUILD_ID}"
+      envVariables:
+        DEPUTY_CLIENT_ID: <+input>
+        DEPUTY_CLIENT_SECRET: <+input>
+        DEPUTY_BUILD_ID: <+input>
+        DEPUTY_ACCESS_TOKEN: <+input>
+        DEPUTY_ENVIRONMENT: <+input>
+        CONTAINER_IMAGES: <+input>
+        ARTEFACTS: <+input>
+      outputVariables:
+        - name: DEPUTY_ACCESS_TOKEN
+      imagePullPolicy: IfNotPresent
+      runAsUser: "1000"
+    description: A Step template to notify Deputy that a CI build has been completed.
+  tags: {}
+  versionLabel: V1.2.0

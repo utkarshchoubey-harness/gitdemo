@@ -1,0 +1,49 @@
+template:
+  name: Deputy Create Build
+  identifier: Step_Template_Deputy_Create_Build
+  type: Step
+  description: A step template to send `deputycli build create` event
+  spec:
+    type: Run
+    spec:
+      connectorRef: <+input>
+      image: <+input>
+      shell: Bash
+      command: |
+        deputycli --version
+
+        if [[ -z "${DEPUTY_ACCESS_TOKEN}" ]]; then
+            DEPUTY_ACCESS_TOKEN=$(deputycli access get-token -d "${DEPUTY_CLIENT_ID}" -v DEBUG 2>>copy_amis.stderr | jq -r .access_token)
+        fi
+        export DEPUTY_ACCESS_TOKEN
+
+        build_out=$("shouldFail" || deputycli builds create \
+            -a "${DEPUTY_APPLICATION_ID}" \
+            -c "${COMMIT_SHA}" \
+            -v DEBUG)
+
+        echo "${build_out}"
+
+        DEPUTY_BUILD_ID=$(echo "${build_out}" | jq .id | tr -d \")
+        export DEPUTY_BUILD_ID
+
+        if [[ -z "${DEPUTY_BUILD_ID}" ]]; then
+            echo "Failed to retrieve new Deputy Build Id from `deputycli builds create`"
+            exit 1
+        fi
+
+        echo "Successfully registered new build with Deputy: ${DEPUTY_BUILD_ID}"
+      envVariables:
+        DEPUTY_CLIENT_ID: <+input>
+        DEPUTY_CLIENT_SECRET: <+input>
+        DEPUTY_APPLICATION_ID: <+input>
+        COMMIT_SHA: <+input>
+        DEPUTY_ENVIRONMENT: <+input>
+      outputVariables:
+        - name: DEPUTY_ACCESS_TOKEN
+        - name: DEPUTY_BUILD_ID
+      imagePullPolicy: IfNotPresent
+      runAsUser: "1000"
+    description: A Step template to register a new CI build with Deputy
+  tags: {}
+  versionLabel: V1.0.0

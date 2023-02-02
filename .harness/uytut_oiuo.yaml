@@ -1,0 +1,43 @@
+template:
+  name: Package API
+  type: Step
+  spec:
+    type: Run
+    spec:
+      connectorRef: <+input>
+      image: <+input>
+      shell: Bash
+      command: |
+        # Function to determine location of API config files
+        function getFileOrPath() {
+        files=("$@")
+          for file in "${files[@]}"; do
+            if [[ -e "${file}" ]]; then
+              echo "${file}"
+              return
+            fi
+          done
+          echo "Unable to find valid path to API config."
+          exit 1
+        }
+
+        # locations to check for API Config files
+        SUPPORTED_API_PATHS=("src/main/api" "api" "app/server/api")
+
+        apiConfigFilePath=$(getFileOrPath ${SUPPORTED_API_PATHS[@]})
+
+        # setup standardised config location for output
+        mkdir -p buildArtifacts;
+        mkdir -p nabserv-artifacts/src/main/api;
+        cp -r ${apiConfigFilePath}/* nabserv-artifacts/src/main/api/ || true
+
+
+        #archive config files for artifactory promotion
+        zip -r "buildArtifacts/${API_PACKAGE_NAME}"  nabserv-artifacts/
+      envVariables:
+        API_PACKAGE_NAME: <+input>
+    when:
+      stageStatus: Success
+      condition: <+input>
+  identifier: Step_Template_Package_APIs
+  versionLabel: V1.0.0

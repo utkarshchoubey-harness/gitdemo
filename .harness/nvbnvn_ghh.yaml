@@ -1,0 +1,53 @@
+template:
+  name: Deputy Send Event
+  type: Step
+  spec:
+    type: Run
+    spec:
+      connectorRef: <+input>
+      image: <+input>
+      shell: Bash
+      command: |-
+        deputycli --version
+
+        if [[ -z "${DEPUTY_ACCESS_TOKEN}" ]]; then
+            DEPUTY_ACCESS_TOKEN=$(deputycli access get-token -d "${DEPUTY_CLIENT_ID}" -v DEBUG 2>>copy_amis.stderr | jq -r .access_token)
+        fi
+        export DEPUTY_ACCESS_TOKEN
+
+        deputy_args=""
+        if [[ ! -z "${DEPUTY_ARGS}" ]]; then
+            deputy_args="${DEPUTY_ARGS}"
+        fi
+
+        rm -f deputy.err || true
+
+        event_output=$(deputycli event "${DEPUTY_EVENT}"\
+            -b "${DEPUTY_BUILD_ID}" \
+            $(echo "${deputy_args}") \
+            -v DEBUG)
+
+        echo "${event_output}"
+
+        if [[ -z "${event_output}" ]]; then
+            echo "Failed to retrieve response from `deputycli event`"
+            exit 1
+        fi
+
+        echo "${DEPUTY_EVENT} event completed for DEPUTY_BUILD_ID: ${DEPUTY_BUILD_ID}"
+      envVariables:
+        DEPUTY_CLIENT_ID: <+input>
+        DEPUTY_CLIENT_SECRET: <+input>
+        DEPUTY_BUILD_ID: <+input>
+        DEPUTY_ACCESS_TOKEN: <+input>
+        DEPUTY_ENVIRONMENT: <+input>
+        DEPUTY_EVENT: <+input>
+        DEPUTY_ARGS: <+input>
+      imagePullPolicy: IfNotPresent
+      runAsUser: "1000"
+    when:
+      stageStatus: All
+      condition: <+input>
+    description: A Step template for generic events sent to Deputy.
+  identifier: Step_Template_Deputy_Send_Event
+  versionLabel: V1.0.0

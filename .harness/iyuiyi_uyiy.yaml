@@ -1,0 +1,107 @@
+template:
+  name: API Validate
+  type: Step
+  spec:
+    type: Run
+    spec:
+      connectorRef: <+input>
+      image: <+input>
+      shell: Bash
+      command: |
+        #!/bin/bash
+        set +x
+        echo "INFO: Running API Validation"
+        sgs --version
+        ## Step Environment Variables
+        # "${KONG_HOST}" : harness step env variable
+        # "${KONG_TENANCY}" : harness step env variable
+        # "${AZURE_ENVIRONMENT}" : harness step env variable
+        # "${AZURE_REGION}" : harness step env variable
+        # "${EXTRA_SWAGSTAR_VALIDATE_ARGS}" : harness step env variable
+        # "${KONG_ENV_ALIAS_AZURE}" : harness step env variable
+        # "${KONG_ENV_ALIAS_AWS}" : harness step env variable
+        ## Functions
+        function isNullOrNA() {
+          var=$1
+          if [[ "${var}" =~ ^[Nn]([/]?[Aa])$|^[Nn]([Uu][Ll]{2})$ ]] || [[ -z "${var-}" ]] || [[ "${var}" == ' ' ]]; then
+            echo "true"
+          else
+            echo "false"
+          fi
+        }
+        function getFileOrPath() {
+          for file in "$@"; do
+            if [[ -e "${file}" ]]; then
+              echo "${file}"
+              return
+            fi
+          done
+          echo "Unable to find valid path to API config."
+          exit 1
+        }
+        function getSwagstarEndpoint() {
+          isAzure=$1
+          declare -A domain_suffix
+          if [[ ${isAzure} == "true" ]]; then
+            domain_suffix[hostsuffix]='-manager'
+            domain_suffix[domain]='azure'
+            domain_suffix[suffix]='/admin'
+            domain_suffix[nonprod]='test'
+          else
+            domain_suffix[hostsuffix]=''
+            domain_suffix[domain]='ext'
+            domain_suffix[suffix]=':8443'
+            domain_suffix[nonprod]='np'
+          fi
+          if [[ "${KONG_HOST}" =~ ^[.]*prod[.]*$|^[.]*pilot[.]*$ ]]; then
+            domain_suffix[nonprod]=''
+          fi
+          echo "https://${KONG_HOST}${domain_suffix[hostsuffix]}.${KONG_TENANCY}.intapi.${domain_suffix[domain]}${domain_suffix[nonprod]}.national.com.au${domain_suffix[suffix]}"
+        }
+        ## Verify Environment Config
+        if [[ $(isNullOrNA "${KONG_HOST}") == "true" ]]; then
+          echo "Kong is missing required environment variables. Please specify a Kong environment or set swagstar enabled to false."
+          exit 0
+        fi
+        ## Variables and Validation
+        IS_AZURE=$(if [[ $(isNullOrNA "${AZURE_ENVIRONMENT}") == "true" ]] && [[ $(isNullOrNA "${AZURE_REGION}") == "true" ]]; then echo "false"; else echo "true"; fi)
+        SWAGGER_PATH=$(getFileOrPath "src/main/api" "api" "app/server/api") #SUPPORTED_API_PATHS
+        echo "Performing Swagstar validation on Swagger config at ${SWAGGER_PATH}/"
+        SERVICE_FILE_NAME=$(getFileOrPath "${SWAGGER_PATH}/service.json" "${SWAGGER_PATH}/service.yml" "${SWAGGER_PATH}/service.yaml")
+        declare -A PARSED_SERVICE_FILE
+        PARSED_SERVICE_FILE[fileExists]=$(if [[ -s "${SERVICE_FILE_NAME}" ]]; then echo "true"; else echo "false"; fi)
+        PARSED_SERVICE_FILE[environmentsFound]=$(if [[ $(grep -c environments "${SERVICE_FILE_NAME}") -eq 0 ]]; then echo "null"; else echo "found"; fi) #add grep for "environments" - in yaml or json format -- return null if not found
+        PARSED_SERVICE_FILE[hostFound]=$(if [[ $(grep -c "${KONG_HOST}" "${SERVICE_FILE_NAME}") -eq 0 ]]; then echo "null"; else echo "found"; fi) #add grep for "${KONG_HOST}" - in yaml or json format -- return null if not found
+        ### Verify Swagstar Config file
+        if [[ "${PARSED_SERVICE_FILE[fileExists]}" == "false" ]] || [[ "${PARSED_SERVICE_FILE[environmentsFound]}" == "null" ]]; then
+          echo "No environments found in ${SERVICE_FILE_NAME}"
+          exit 1
+        fi
+        ENDPOINT=$(getSwagstarEndpoint "${IS_AZURE}")
+        EXTRA_ARGS=$(if [[ $(isNullOrNA "${EXTRA_SWAGSTAR_VALIDATE_ARGS}") == "false" ]]; then echo "${EXTRA_SWAGSTAR_VALIDATE_ARGS}"; elif [[ "${KONG_TENANCY}" == "openbanking" ]]; then echo "--openBanking"; else echo ""; fi)
+        ALIAS=$(if [[ "${IS_AZURE}" == "true" ]] && [[ $(isNullOrNA "${KONG_ENV_ALIAS_AZURE}") == "false" ]]; then echo "${KONG_ENV_ALIAS_AZURE}"; elif [[ "${IS_AZURE}" == "false" ]] && [[ $(isNullOrNA "${KONG_ENV_ALIAS_AWS}") == "false" ]]; then echo "${KONG_ENV_ALIAS_AWS}"; else echo "${KONG_HOST}"; fi)
+        ## Run API Validation
+        if [[ ${PARSED_SERVICE_FILE[hostFound]} == "found" ]]; then
+          echo "Validating Swagger for ${KONG_HOST}"
+          sgs validate ${SWAGGER_PATH} ${ALIAS} --endpoint ${ENDPOINT} ${EXTRA_ARGS}
+        else
+          echo "ERROR: Kong host: ${KONG_HOST} does not exist in: ${SERVICE_FILE_NAME}"
+          exit 1
+        fi
+      envVariables:
+        KONG_HOST: <+input>
+        KONG_TENANCY: <+input>
+        AZURE_ENVIRONMENT: <+input>
+        AZURE_REGION: <+input>
+        EXTRA_SWAGSTAR_VALIDATE_ARGS: <+input>
+        KONG_ENV_ALIAS_AZURE: <+input>
+        KONG_ENV_ALIAS_AWS: <+input>
+    when:
+      stageStatus: Success
+      condition: <+input>
+    description: |-
+      Step for validating a project's API configuration.
+      Requires conditional execution at stage-level: API validate and push stage should only run if <+pipeline.variables.SWAGSTAR_ENABLED> == 'true'
+      Step's connectorRef should be an appropriately scoped cd repo artifactory connector.
+  identifier: Step_Template_API_Validates
+  versionLabel: V1.0.2

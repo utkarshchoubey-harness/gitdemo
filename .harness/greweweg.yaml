@@ -1,0 +1,28 @@
+pipeline:
+  name: greg
+  identifier: greg
+  projectIdentifier: njh
+  orgIdentifier: default
+  tags: {}
+  stages:
+    - stage:
+        name: ger
+        identifier: ger
+        description: ""
+        type: Approval
+        spec:
+          execution:
+            steps:
+              - step:
+                  name: ter
+                  identifier: ter
+                  template:
+                    templateRef: wqe
+                    templateInputs:
+                      type: ShellScript
+                      spec:
+                        source:
+                          type: Inline
+                          spec:
+                            script: <+input>
+        tags: {}

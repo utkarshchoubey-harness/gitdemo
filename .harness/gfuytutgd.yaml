@@ -1,0 +1,23 @@
+template:
+  name: eee
+  identifier: eee
+  versionLabel: ee
+  type: Step
+  projectIdentifier: njh
+  orgIdentifier: default
+  tags: {}
+  spec:
+    type: ShellScript
+    spec:
+      shell: Bash
+      onDelegate: true
+      source:
+        type: Inline
+        spec:
+          script: <+input>
+      environmentVariables: []
+      outputVariables: []
+    timeout: 10m
+    when:
+      stageStatus: All
+      condition: "<+pipeline.stages.Source_Code_Build_and_Test.spec.execution.steps.SonarQube.output.outputVariables.sendDeputySonarqubeEvent> ? <+pipeline.stages.Source_Code_Build_and_Test.spec.execution.steps.SonarQube.output.outputVariables.sendDeputySonarqubeEvent> : false) && <+pipeline.stages.Initialise.spec.execution.steps.Deduce_Configuration.output.outputVariables.cloudComplianceEnabled>"

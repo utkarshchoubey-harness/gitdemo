@@ -1,0 +1,28 @@
+pipeline:
+  name: "gfgd"
+  identifier: "gfgd"
+  projectIdentifier: "njh"
+  orgIdentifier: "default"
+  tags: {}
+  stages:
+  - stage:
+      name: "gfgf"
+      identifier: "gfgf"
+      template:
+        templateRef: "ewew"
+        versionLabel: "ewe"
+        templateInputs:
+          type: "Approval"
+          spec:
+            execution:
+              steps:
+              - step:
+                  identifier: "we"
+                  template:
+                    templateInputs:
+                      type: "ShellScript"
+                      spec:
+                        source:
+                          type: "Inline"
+                          spec:
+                            script: "<+input>"

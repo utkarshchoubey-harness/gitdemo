@@ -1,0 +1,26 @@
+template:
+  name: v1111
+  identifier: v1111
+  versionLabel: "1"
+  type: Stage
+  projectIdentifier: njh
+  orgIdentifier: default
+  tags: {}
+  spec:
+    type: Approval
+    spec:
+      execution:
+        steps:
+          - step:
+              name: sdf
+              identifier: sdf
+              template:
+                templateRef: rtrt
+                versionLabel: "1"
+                templateInputs:
+                  type: ShellScript
+                  spec:
+                    source:
+                      type: Inline
+                      spec:
+                        script: <+input>.allowedValues(av,fd,er,t,yyy)

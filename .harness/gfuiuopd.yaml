@@ -1,0 +1,26 @@
+template:
+  name: "ewew"
+  identifier: "ewew"
+  versionLabel: "ewe"
+  type: "Stage"
+  projectIdentifier: "njh"
+  orgIdentifier: "default"
+  tags: {}
+  spec:
+    type: "Approval"
+    spec:
+      execution:
+        steps:
+        - step:
+            name: "we"
+            identifier: "we"
+            template:
+              templateRef: "eee"
+              versionLabel: "ee"
+              templateInputs:
+                type: "ShellScript"
+                spec:
+                  source:
+                    type: "Inline"
+                    spec:
+                      script: "<+input>"

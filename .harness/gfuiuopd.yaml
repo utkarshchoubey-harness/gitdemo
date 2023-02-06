@@ -1,0 +1,24 @@
+template:
+  name: stpgrpp1
+  identifier: stpgrpp1
+  versionLabel: "1"
+  type: StepGroup
+  projectIdentifier: njh
+  orgIdentifier: default
+  tags: {}
+  spec:
+    stageType: Deployment
+    steps:
+      - step:
+          name: gfg
+          identifier: gfg
+          template:
+            templateRef: account.jh
+            versionLabel: vg
+            templateInputs:
+              type: ShellScript
+              spec:
+                source:
+                  type: Inline
+                  spec:
+                    script: <+input>

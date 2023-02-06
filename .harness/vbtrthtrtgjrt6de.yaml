@@ -1,0 +1,26 @@
+template:
+  name: ut
+  identifier: ut
+  versionLabel: uty
+  type: Stage
+  projectIdentifier: njh
+  orgIdentifier: default
+  tags: {}
+  spec:
+    type: Approval
+    spec:
+      execution:
+        steps:
+          - step:
+              name: uyt
+              identifier: uyt
+              template:
+                templateRef: account.tr
+                versionLabel: tr
+                templateInputs:
+                  type: ShellScript
+                  spec:
+                    source:
+                      type: Inline
+                      spec:
+                        script: <+input>

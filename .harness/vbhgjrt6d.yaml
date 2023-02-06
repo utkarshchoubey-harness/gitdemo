@@ -1,0 +1,33 @@
+template:
+  name: tre
+  identifier: tre
+  versionLabel: ter
+  type: Pipeline
+  projectIdentifier: njh
+  orgIdentifier: default
+  tags: {}
+  spec:
+    stages:
+      - stage:
+          name: ter
+          identifier: ter
+          description: ""
+          type: Approval
+          spec:
+            execution:
+              steps:
+                - step:
+                    type: ShellScript
+                    name: Shell Script_1
+                    identifier: ShellScript_1
+                    spec:
+                      shell: Bash
+                      onDelegate: true
+                      source:
+                        type: Inline
+                        spec:
+                          script: <+input>
+                      environmentVariables: []
+                      outputVariables: []
+                    timeout: 10m
+          tags: {}

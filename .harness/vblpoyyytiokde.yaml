@@ -1,0 +1,30 @@
+template:
+  name: cvcv
+  identifier: cvcv
+  versionLabel: cv
+  type: Stage
+  projectIdentifier: njh
+  orgIdentifier: default
+  tags: {}
+  spec:
+    type: Approval
+    spec:
+      execution:
+        steps:
+          - step:
+              name: eqwe
+              identifier: eqwe
+              template:
+                templateRef: rtrt
+                templateInputs:
+                  type: ShellScript
+                  spec:
+                    source:
+                      type: Inline
+                      spec:
+                        script: <+input>.allowedValues(av,fd,er,t,yyy)
+    variables:
+      - name: yrty
+        type: String
+        description: ""
+        value: <+input>.allowedValues(ut,uyutu,uyuyu)

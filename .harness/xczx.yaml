@@ -1,0 +1,23 @@
+pipeline:
+  name: xczx
+  identifier: xczx
+  template:
+    templateRef: account.TERT
+    versionLabel: TER
+    templateInputs:
+      stages:
+        - stage:
+            identifier: TERTTERTERT
+            type: Approval
+            spec:
+              execution:
+                steps:
+                  - step:
+                      identifier: RWE
+                      template:
+                        templateInputs:
+                          type: ShellScript
+                          timeout: <+input>
+  tags: {}
+  projectIdentifier: njh
+  orgIdentifier: default

@@ -1,0 +1,31 @@
+template:
+  name: pipelinew3213123
+  identifier: pipelinew3213123
+  versionLabel: "3213"
+  type: Pipeline
+  projectIdentifier: SahilProject
+  orgIdentifier: default
+  tags: {}
+  spec:
+    stages:
+      - stage:
+          name: eqwerqwr
+          identifier: eqwerqwr
+          template:
+            templateRef: stage222
+            versionLabel: "22"
+            templateInputs:
+              type: Approval
+              spec:
+                execution:
+                  steps:
+                    - step:
+                        identifier: dads
+                        template:
+                          templateInputs:
+                            type: ShellScript
+                            spec:
+                              source:
+                                type: Inline
+                                spec:
+                                  script: <+input>

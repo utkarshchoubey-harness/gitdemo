@@ -1,0 +1,29 @@
+pipeline:
+  name: fdwsfewrteryery
+  identifier: fdwsfewrteryery
+  template:
+    templateRef: pipelinew3213123
+    versionLabel: "3213"
+    templateInputs:
+      stages:
+        - stage:
+            identifier: eqwerqwr
+            template:
+              templateInputs:
+                type: Approval
+                spec:
+                  execution:
+                    steps:
+                      - step:
+                          identifier: dads
+                          template:
+                            templateInputs:
+                              type: ShellScript
+                              spec:
+                                source:
+                                  type: Inline
+                                  spec:
+                                    script: <+input>
+  tags: {}
+  projectIdentifier: SahilProject
+  orgIdentifier: default

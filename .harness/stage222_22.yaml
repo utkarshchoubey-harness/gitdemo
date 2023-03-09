@@ -1,0 +1,26 @@
+template:
+  name: stage222
+  identifier: stage222
+  versionLabel: "22"
+  type: Stage
+  projectIdentifier: SahilProject
+  orgIdentifier: default
+  tags: {}
+  spec:
+    type: Approval
+    spec:
+      execution:
+        steps:
+          - step:
+              name: dads
+              identifier: dads
+              template:
+                templateRef: stepp111
+                versionLabel: "11"
+                templateInputs:
+                  type: ShellScript
+                  spec:
+                    source:
+                      type: Inline
+                      spec:
+                        script: <+input>

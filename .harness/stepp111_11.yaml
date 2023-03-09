@@ -1,0 +1,20 @@
+template:
+  name: stepp111
+  identifier: stepp111
+  versionLabel: "11"
+  type: Step
+  projectIdentifier: SahilProject
+  orgIdentifier: default
+  tags: {}
+  spec:
+    timeout: 10m
+    type: ShellScript
+    spec:
+      shell: Bash
+      onDelegate: true
+      source:
+        type: Inline
+        spec:
+          script: <+input>
+      environmentVariables: []
+      outputVariables: []

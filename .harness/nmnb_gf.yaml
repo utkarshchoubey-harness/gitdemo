@@ -1,0 +1,12 @@
+template:
+  name: nmnb
+  identifier: nmnb
+  versionLabel: gf
+  type: Step
+  projectIdentifier: njh
+  orgIdentifier: default
+  tags: {}
+  spec:
+    type: Wait
+    spec:
+      duration: 10m

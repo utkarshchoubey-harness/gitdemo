@@ -1,0 +1,71 @@
+template:
+  name: manuPip
+  identifier: manuPip
+  versionLabel: "1"
+  type: Pipeline
+  projectIdentifier: njh
+  orgIdentifier: default
+  tags: {}
+  spec:
+    stages:
+      - stage:
+          name: rwer
+          identifier: rwer
+          template:
+            templateRef: manu1434
+            versionLabel: "41"
+            templateInputs:
+              type: Deployment
+              spec:
+                service:
+                  serviceRef: <+input>
+                  serviceInputs: <+input>
+                environment:
+                  environmentRef: <+input>
+                  environmentInputs: <+input>
+                  serviceOverrideInputs: <+input>
+                  infrastructureDefinitions: <+input>
+                execution:
+                  steps:
+                    - step:
+                        identifier: re
+                        template:
+                          templateInputs:
+                            type: ShellScript
+                            spec:
+                              source:
+                                type: Inline
+                                spec:
+                                  script: <+input>
+                    - step:
+                        identifier: rew3
+                        template:
+                          templateInputs:
+                            type: ShellScript
+                            spec:
+                              source:
+                                type: Inline
+                                spec:
+                                  script: <+input>
+                    - step:
+                        identifier: q
+                        template:
+                          templateInputs:
+                            type: ShellScript
+                            timeout: <+input>
+                            spec:
+                              source:
+                                type: Inline
+                                spec:
+                                  script: <+input>
+                    - step:
+                        identifier: sa
+                        template:
+                          templateInputs:
+                            type: ShellScript
+                            timeout: <+input>
+                            spec:
+                              source:
+                                type: Inline
+                                spec:
+                                  script: <+input>

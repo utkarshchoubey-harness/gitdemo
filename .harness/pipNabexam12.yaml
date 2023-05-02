@@ -4,6 +4,22 @@ pipeline:
   template:
     templateRef: pipTempNabex
     versionLabel: "1"
+    templateInputs:
+      stages:
+        - stage:
+            identifier: ghnnfg
+            type: Custom
+            spec:
+              execution:
+                steps:
+                  - step:
+                      identifier: ShellScript_1
+                      type: ShellScript
+                      spec:
+                        source:
+                          type: Inline
+                          spec:
+                            script: <+input>
   tags: {}
   projectIdentifier: njh
   orgIdentifier: default

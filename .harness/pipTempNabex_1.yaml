@@ -1,0 +1,33 @@
+template:
+  name: pipTempNabex
+  identifier: pipTempNabex
+  versionLabel: "1"
+  type: Pipeline
+  projectIdentifier: njh
+  orgIdentifier: default
+  tags: {}
+  spec:
+    stages:
+      - stage:
+          name: ghnnfg
+          identifier: ghnnfg
+          description: ""
+          type: Custom
+          spec:
+            execution:
+              steps:
+                - step:
+                    type: ShellScript
+                    name: ShellScript_1
+                    identifier: ShellScript_1
+                    spec:
+                      shell: Bash
+                      onDelegate: true
+                      source:
+                        type: Inline
+                        spec:
+                          script: ewde
+                      environmentVariables: []
+                      outputVariables: []
+                    timeout: 10m
+          tags: {}

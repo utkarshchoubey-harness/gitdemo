@@ -31,3 +31,8 @@ template:
                       outputVariables: []
                     timeout: 10m
           tags: {}
+          variables:
+            - name: mainBranch
+              type: String
+              description: ""
+              value: 112sa

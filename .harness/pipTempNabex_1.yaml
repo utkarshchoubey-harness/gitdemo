@@ -36,3 +36,7 @@ template:
               type: String
               description: ""
               value: 112sa
+            - name: nonDefBranch
+              type: String
+              description: ""
+              value: ewqdea

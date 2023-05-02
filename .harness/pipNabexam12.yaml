@@ -1,0 +1,9 @@
+pipeline:
+  name: pipNabexam12
+  identifier: pipNabexam12
+  template:
+    templateRef: pipTempNabex
+    versionLabel: "1"
+  tags: {}
+  projectIdentifier: njh
+  orgIdentifier: default

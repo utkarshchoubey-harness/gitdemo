@@ -1,0 +1,9 @@
+pipeline:
+  name: kpipeTdwqe
+  identifier: kpipeTdwqe
+  template:
+    templateRef: kpipelineTempl
+    versionLabel: "1"
+  tags: {}
+  projectIdentifier: njh
+  orgIdentifier: default

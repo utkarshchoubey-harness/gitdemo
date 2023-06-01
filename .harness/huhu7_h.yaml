@@ -1,0 +1,29 @@
+template:
+  name: huhu7
+  identifier: huhu7
+  versionLabel: h
+  type: Pipeline
+  projectIdentifier: njh
+  orgIdentifier: default
+  tags: {}
+  spec:
+    stages:
+      - stage:
+          name: b
+          identifier: b
+          template:
+            templateRef: bhj
+            versionLabel: yvgy
+            templateInputs:
+              type: Custom
+              spec:
+                execution:
+                  steps:
+                    - step:
+                        identifier: ShellScript_1
+                        type: ShellScript
+                        spec:
+                          source:
+                            type: Inline
+                            spec:
+                              script: <+input>

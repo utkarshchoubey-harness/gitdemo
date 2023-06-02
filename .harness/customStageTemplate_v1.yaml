@@ -1,0 +1,19 @@
+template:
+  name: customStageTemplate
+  identifier: customStageTemplate
+  versionLabel: v1
+  type: Stage
+  projectIdentifier: SahilProject
+  orgIdentifier: default
+  tags: {}
+  spec:
+    type: Custom
+    spec:
+      execution:
+        steps:
+          - stepGroup:
+              name: fdsf
+              identifier: fdsf
+              template:
+                templateRef: stepGroupTest
+                versionLabel: v1

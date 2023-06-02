@@ -15,3 +15,11 @@ template:
           template:
             templateRef: shellTest
             versionLabel: "1"
+            templateInputs:
+              type: ShellScript
+              timeout: <+input>
+              spec:
+                source:
+                  type: Inline
+                  spec:
+                    script: <+input>

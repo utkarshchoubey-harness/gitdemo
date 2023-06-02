@@ -1,0 +1,17 @@
+template:
+  name: stepGroupTest
+  identifier: stepGroupTest
+  versionLabel: v1
+  type: StepGroup
+  projectIdentifier: SahilProject
+  orgIdentifier: default
+  tags: {}
+  spec:
+    stageType: Custom
+    steps:
+      - step:
+          name: fd
+          identifier: fd
+          template:
+            templateRef: shellTest
+            versionLabel: "1"

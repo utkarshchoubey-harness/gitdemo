@@ -1,0 +1,34 @@
+pipeline:
+  name: testPipelineReconciliation
+  identifier: testPipelineReconciliation
+  template:
+    templateRef: pipelineTemplateTest
+    versionLabel: "1"
+    templateInputs:
+      stages:
+        - stage:
+            identifier: fdsfd
+            template:
+              templateInputs:
+                type: Custom
+                spec:
+                  execution:
+                    steps:
+                      - stepGroup:
+                          identifier: fdsf
+                          template:
+                            templateInputs:
+                              steps:
+                                - step:
+                                    identifier: fd
+                                    template:
+                                      templateInputs:
+                                        type: ShellScript
+                                        spec:
+                                          source:
+                                            type: Inline
+                                            spec:
+                                              script: <+input>
+  tags: {}
+  projectIdentifier: SahilProject
+  orgIdentifier: default

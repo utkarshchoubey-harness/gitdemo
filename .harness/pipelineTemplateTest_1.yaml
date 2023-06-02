@@ -1,0 +1,16 @@
+template:
+  name: pipelineTemplateTest
+  identifier: pipelineTemplateTest
+  versionLabel: "1"
+  type: Pipeline
+  projectIdentifier: SahilProject
+  orgIdentifier: default
+  tags: {}
+  spec:
+    stages:
+      - stage:
+          name: fdsfd
+          identifier: fdsfd
+          template:
+            templateRef: customStageTemplate
+            versionLabel: v1

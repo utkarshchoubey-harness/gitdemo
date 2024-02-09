@@ -1,0 +1,34 @@
+template:
+  name: gdfgdfnondef
+  identifier: gdfgdfnondef
+  versionLabel: ds
+  type: Pipeline
+  projectIdentifier: fdsf
+  orgIdentifier: default
+  tags: {}
+  spec:
+    stages:
+      - stage:
+          name: gdfg
+          identifier: gdfg
+          description: ""
+          type: Custom
+          spec:
+            execution:
+              steps:
+                - step:
+                    type: ShellScript
+                    name: ShellScript_1
+                    identifier: ShellScript_1
+                    spec:
+                      shell: Bash
+                      executionTarget: {}
+                      source:
+                        type: Inline
+                        spec:
+                          script: fdsf
+                      environmentVariables: []
+                      outputVariables: []
+                    timeout: 10m
+          tags: {}
+    allowStageExecutions: true

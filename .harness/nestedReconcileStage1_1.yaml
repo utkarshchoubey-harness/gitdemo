@@ -1,0 +1,25 @@
+template:
+  name: nestedReconcileStage1
+  identifier: nestedReconcileStage1
+  versionLabel: "1"
+  type: Stage
+  projectIdentifier: fdsf
+  orgIdentifier: default
+  tags: {}
+  spec:
+    type: Custom
+    spec:
+      execution:
+        steps:
+          - step:
+              name: dasd
+              identifier: dasd
+              template:
+                templateRef: nestedReconcileStep1
+                versionLabel: "1"
+          - step:
+              name: eqewq
+              identifier: eqewq
+              template:
+                templateRef: nestedReconcileStep2
+                versionLabel: "1"

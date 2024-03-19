@@ -1,0 +1,35 @@
+template:
+  name: nestedReconilePipeline1
+  identifier: nestedReconilePipeline1
+  versionLabel: "1"
+  type: Pipeline
+  projectIdentifier: fdsf
+  orgIdentifier: default
+  tags: {}
+  spec:
+    stages:
+      - stage:
+          name: asdsad
+          identifier: asdsad
+          tags: {}
+          template:
+            templateRef: nestedReconcileStage1
+            versionLabel: "1"
+      - stage:
+          name: dasdas
+          identifier: dasdas
+          tags: {}
+          template:
+            templateRef: nestedReconcileStage2
+            versionLabel: "1"
+            templateInputs:
+              type: Deployment
+              spec:
+                environment:
+                  environmentRef: <+input>
+                  environmentInputs: <+input>
+                  serviceOverrideInputs: <+input>
+                  infrastructureDefinitions: <+input>
+                service:
+                  serviceRef: <+input>
+                  serviceInputs: <+input>

@@ -1,0 +1,26 @@
+pipeline:
+  name: nestedReconcilePipelineFinal
+  identifier: nestedReconcilePipelineFinal
+  tags: {}
+  template:
+    templateRef: nestedReconilePipeline1
+    versionLabel: "1"
+    gitBranch: feature
+    templateInputs:
+      stages:
+        - stage:
+            identifier: dasdas
+            template:
+              templateInputs:
+                type: Deployment
+                spec:
+                  environment:
+                    environmentRef: <+input>
+                    environmentInputs: <+input>
+                    serviceOverrideInputs: <+input>
+                    infrastructureDefinitions: <+input>
+                  service:
+                    serviceRef: <+input>
+                    serviceInputs: <+input>
+  projectIdentifier: fdsf
+  orgIdentifier: default

@@ -1,0 +1,12 @@
+template:
+  name: nestedReconcileStep3
+  identifier: nestedReconcileStep3
+  versionLabel: "1"
+  type: Step
+  projectIdentifier: fdsf
+  orgIdentifier: default
+  tags: {}
+  spec:
+    type: Wait
+    spec:
+      duration: 10m

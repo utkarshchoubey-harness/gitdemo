@@ -20,3 +20,10 @@ pipeline:
                   spec:
                     duration: 10m
         tags: {}
+    - stage:
+        name: fsd
+        identifier: fsd
+        tags: {}
+        template:
+          templateRef: stageTemplate2
+          versionLabel: "1"

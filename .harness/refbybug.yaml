@@ -1,0 +1,22 @@
+pipeline:
+  name: refbybug
+  identifier: refbybug
+  tags: {}
+  projectIdentifier: cxsa
+  orgIdentifier: ljik
+  stages:
+    - stage:
+        name: rew
+        identifier: rew
+        description: ""
+        type: Custom
+        spec:
+          execution:
+            steps:
+              - step:
+                  type: Wait
+                  name: Wait_1
+                  identifier: Wait_1
+                  spec:
+                    duration: 10s
+        tags: {}

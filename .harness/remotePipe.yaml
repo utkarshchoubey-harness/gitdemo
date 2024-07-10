@@ -1,0 +1,14 @@
+pipeline:
+  name: remotePipe
+  identifier: remotePipe
+  tags: {}
+  projectIdentifier: cxsa
+  orgIdentifier: ljik
+  stages:
+    - stage:
+        name: gf
+        identifier: gf
+        tags: {}
+        template:
+          templateRef: inlineTemplate
+          versionLabel: "1"

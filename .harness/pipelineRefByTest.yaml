@@ -6,23 +6,15 @@ pipeline:
   tags: {}
   stages:
     - stage:
-        name: ytr
-        identifier: ytr
-        description: ""
-        type: Custom
-        spec:
-          execution:
-            steps:
-              - step:
-                  type: Wait
-                  name: Wait_1
-                  identifier: Wait_1
-                  spec:
-                    duration: 10m
-        tags: {}
-    - stage:
         name: fsd
         identifier: fsd
+        tags: {}
+        template:
+          templateRef: stageTemplate2
+          versionLabel: "1"
+    - stage:
+        name: dsa
+        identifier: dsa
         tags: {}
         template:
           templateRef: stageTemplate2

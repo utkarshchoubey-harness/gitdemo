@@ -6,6 +6,11 @@ pipeline:
     templateRef: DP_Java_Maven_Snapshot_build
     versionLabel: test
     templateInputs:
+      properties:
+        ci:
+          codebase:
+            repoName: <+input>
+            build: <+input>
       stages:
         - stage:
             identifier: Java11_Maven_Build

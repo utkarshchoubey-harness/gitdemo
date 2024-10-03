@@ -1,0 +1,13 @@
+inputSet:
+  name: wq
+  identifier: wq
+  orgIdentifier: ljik
+  projectIdentifier: cxsa
+  pipeline:
+    identifier: dadawdqe
+    template:
+      templateInputs:
+        properties:
+          ci:
+            codebase:
+              build: <+input>

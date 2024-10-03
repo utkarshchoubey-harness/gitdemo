@@ -9,7 +9,7 @@ pipeline:
       properties:
         ci:
           codebase:
-            repoName: <+input>
+            repoName: repo
             build: <+input>
   projectIdentifier: cxsa
   orgIdentifier: ljik

@@ -1,0 +1,22 @@
+pipeline:
+  name: dadawdqe
+  identifier: dadawdqe
+  tags: {}
+  template:
+    templateRef: DP_Java_Maven_Snapshot_build
+    versionLabel: test
+    templateInputs:
+      stages:
+        - stage:
+            identifier: Java11_Maven_Build
+            type: CI
+            spec:
+              execution:
+                steps:
+                  - step:
+                      identifier: Build
+                      type: Run
+                      spec:
+                        command: <+input>
+  projectIdentifier: cxsa
+  orgIdentifier: ljik

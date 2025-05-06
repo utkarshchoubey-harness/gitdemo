@@ -1,1 +1,51 @@
-
+template:
+  name: K8sTemplate2
+  type: Pipeline
+  projectIdentifier: donotdeleteutkarshTest
+  orgIdentifier: Ng_Pipelines_K8s_Organisations
+  spec:
+    stages:
+      - stage:
+          name: BasicK8s
+          identifier: BasicK8s
+          description: ""
+          type: Deployment
+          spec:
+            deploymentType: Kubernetes
+            service:
+              serviceRef: serv1
+            environment:
+              environmentRef: env
+              deployToAll: false
+              infrastructureDefinitions:
+                - identifier: infra
+            execution:
+              steps:
+                - insert:
+                    name: additionalStepToAdd
+                    identifier: additionalStepToAdd
+                    steps:
+                      - step:
+                          name: Rollout Deployment
+                          identifier: rolloutDeployment
+                          type: K8sRollingDeploy
+                          timeout: 10m
+                          spec:
+                            skipDryRun: false
+                            pruningEnabled: false
+              rollbackSteps:
+                - step:
+                    type: K8sRollingRollback
+                    name: K8sRollingRollback_1
+                    identifier: K8sRollingRollback_1
+                    spec:
+                      pruningEnabled: false
+                    timeout: 10m
+          tags: {}
+          failureStrategies:
+            - onFailure:
+                errors:
+                  - AllErrors
+                action:
+                  type: StageRollback
+  identifier: K8sTemplate2

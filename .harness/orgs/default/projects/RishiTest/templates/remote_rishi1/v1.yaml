@@ -1,0 +1,12 @@
+template:
+  name: remote_rishi1
+  identifier: remote_rishi1
+  versionLabel: v1
+  type: Step
+  projectIdentifier: RishiTest
+  orgIdentifier: default
+  tags: {}
+  spec:
+    type: Wait
+    spec:
+      duration: 10m
